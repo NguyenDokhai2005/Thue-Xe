@@ -1,0 +1,101 @@
+### Car Rental Auth API Tests
+### Base URL: http://localhost:8080
+
+### 1. Register new user
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123",
+  "fullName": "Test User",
+  "phone": "0123456789"
+}
+
+### 2. Login user
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+### 3. Get current user info (requires token)
+GET http://localhost:8080/api/auth/me
+Authorization: Bearer {{token}}
+
+### 4. Update user profile (requires token)
+PUT http://localhost:8080/api/auth/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id": 1,
+  "fullName": "Updated Name",
+  "phone": "0987654321"
+}
+
+### 5. Change password (requires token)
+PUT http://localhost:8080/api/auth/change-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "oldPassword": "password123",
+  "newPassword": "newpassword123"
+}
+
+### 6. Check if email exists
+GET http://localhost:8080/api/auth/check-email?email=test@example.com
+
+### 7. Admin only endpoint (requires admin role)
+GET http://localhost:8080/api/auth/admin
+Authorization: Bearer {{admin_token}}
+
+### 8. Register admin user (for testing)
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "admin123",
+  "fullName": "Admin User",
+  "phone": "0123456780"
+}
+
+### 9. Login admin user
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "admin123"
+}
+
+### 10. Test invalid login
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "wrong@example.com",
+  "password": "wrongpassword"
+}
+
+### 11. Test register with existing email
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123",
+  "fullName": "Another User",
+  "phone": "0123456788"
+}
+
+### 12. Test access without token
+GET http://localhost:8080/api/auth/me
+
+### 13. Test with invalid token
+GET http://localhost:8080/api/auth/me
+Authorization: Bearer invalid_token_here
