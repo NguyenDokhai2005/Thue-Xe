@@ -24,3 +24,4 @@ Content-Type: application/json
 ### Test endpoint admin (cần token từ login response)
 GET http://localhost:8080/api/auth/admin
 Authorization: Bearer {{admin_token}}
+

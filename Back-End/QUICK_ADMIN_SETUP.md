@@ -69,3 +69,4 @@ GET http://localhost:8080/api/admin-setup/check-admin
 - Endpoints `/api/admin-setup/**` chỉ dành cho development
 - Trong production, nên xóa hoặc bảo mật các endpoints này
 - Password được mã hóa tự động bằng BCrypt
+

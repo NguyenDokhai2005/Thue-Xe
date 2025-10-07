@@ -30,8 +30,6 @@ CREATE TABLE users (
 -- =====================================================
 CREATE TABLE vehicles (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    owner_id BIGINT,
-    owner_name VARCHAR(120) NOT NULL,
     title VARCHAR(150) NOT NULL,
     vehicle_type ENUM('SEDAN', 'SUV', 'HATCHBACK', 'COUPE', 'CONVERTIBLE', 'WAGON', 'PICKUP', 'VAN', 'MOTORCYCLE') NOT NULL,
     license_plate VARCHAR(32) NOT NULL,
@@ -39,8 +37,7 @@ CREATE TABLE vehicles (
     currency CHAR(3) NOT NULL DEFAULT 'VND',
     status ENUM('AVAILABLE', 'RENTED', 'MAINTENANCE', 'OUT_OF_SERVICE') NOT NULL DEFAULT 'AVAILABLE',
     description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =====================================================
@@ -101,7 +98,6 @@ CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_role ON users(role);
 
 -- Indexes cho bảng vehicles
-CREATE INDEX idx_vehicles_owner_id ON vehicles(owner_id);
 CREATE INDEX idx_vehicles_status ON vehicles(status);
 CREATE INDEX idx_vehicles_type ON vehicles(vehicle_type);
 CREATE INDEX idx_vehicles_license_plate ON vehicles(license_plate);
