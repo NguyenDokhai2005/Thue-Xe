@@ -63,6 +63,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin-setup/**").permitAll()
                 // Admin only endpoints
                 .requestMatchers("/api/auth/admin").hasRole("ADMIN")
+                .requestMatchers("/api/vehicles/**").hasRole("ADMIN")
                 // Authenticated endpoints
                 .requestMatchers("/api/auth/me", "/api/auth/profile", "/api/auth/change-password").authenticated()
                 // All other requests need authentication
