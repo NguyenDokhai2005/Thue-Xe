@@ -12,3 +12,5 @@ echo Step 3: Starting Spring Boot application...
 mvnw.cmd spring-boot:run
 
 pause
+
+

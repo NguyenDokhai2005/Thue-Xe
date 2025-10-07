@@ -4,8 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 
 public class LoginRequest {
     
-    @NotBlank(message = "Email không được để trống")
-    private String email;
+    @NotBlank(message = "Username không được để trống")
+    private String username;
     
     @NotBlank(message = "Password không được để trống")
     private String password;
@@ -13,18 +13,18 @@ public class LoginRequest {
     // Constructors
     public LoginRequest() {}
     
-    public LoginRequest(String email, String password) {
-        this.email = email;
+    public LoginRequest(String username, String password) {
+        this.username = username;
         this.password = password;
     }
     
     // Getters and Setters
-    public String getEmail() {
-        return email;
+    public String getUsername() {
+        return username;
     }
     
-    public void setEmail(String email) {
-        this.email = email;
+    public void setUsername(String username) {
+        this.username = username;
     }
     
     public String getPassword() {

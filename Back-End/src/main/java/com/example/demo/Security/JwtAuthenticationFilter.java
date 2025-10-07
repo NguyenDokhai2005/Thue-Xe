@@ -30,24 +30,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
                                   FilterChain filterChain) throws ServletException, IOException {
         
+        final String requestURI = request.getRequestURI();
+        logger.info("Processing request: " + request.getMethod() + " " + requestURI);
+        
         final String authorizationHeader = request.getHeader("Authorization");
         
-        String email = null;
+        String username = null;
         String jwt = null;
         
         // Kiểm tra Authorization header
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
             try {
-                email = jwtUtil.getUsernameFromToken(jwt);
+                username = jwtUtil.getUsernameFromToken(jwt);
+                logger.info("Found JWT token for username: " + username);
             } catch (Exception e) {
                 logger.error("JWT token is invalid: " + e.getMessage());
             }
+        } else {
+            logger.info("No JWT token found for request: " + requestURI);
         }
         
-        // Nếu có email và chưa có authentication
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+        // Nếu có username và chưa có authentication
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
             
             // Validate token
             if (jwtUtil.validateToken(jwt, userDetails)) {

@@ -1,237 +1,290 @@
 # Car Rental Auth API Guide
 
 ## Tổng quan
-API Authentication cho hệ thống Car Rental sử dụng JWT (JSON Web Token) để xác thực và phân quyền người dùng.
+API Auth của hệ thống Car Rental cung cấp các chức năng xác thực và quản lý người dùng, bao gồm đăng ký, đăng nhập, quản lý profile và phân quyền.
 
-## Cấu trúc Database
-- **Bảng users**: Lưu trữ thông tin người dùng với email làm username
-- **Roles**: ADMIN, CUSTOMER, EMPLOYEE
-- **Password**: Được mã hóa bằng BCrypt
+## Base URL
+```
+http://localhost:8080/api/auth
+```
 
-## API Endpoints
+## Endpoints
 
-### 1. Đăng ký (Register)
-**POST** `/api/auth/register`
+### 1. Đăng ký người dùng mới
+**POST** `/register`
 
 **Request Body:**
 ```json
 {
+  "username": "nguyenvana",
   "email": "user@example.com",
   "password": "password123",
-  "fullName": "User Name",
+  "fullName": "Nguyễn Văn A",
   "phone": "0123456789"
 }
 ```
 
-**Response:**
+**Response (200 OK):**
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "type": "Bearer",
   "id": 1,
+  "username": "nguyenvana",
   "email": "user@example.com",
-  "fullName": "User Name",
+  "fullName": "Nguyễn Văn A",
   "phone": "0123456789",
   "role": "CUSTOMER"
 }
 ```
 
-### 2. Đăng nhập (Login)
-**POST** `/api/auth/login`
+**Response (400 Bad Request) - Username/Email đã tồn tại:**
+```json
+{
+  "error": "Username đã tồn tại!"
+}
+```
+
+### 2. Đăng nhập
+**POST** `/login`
 
 **Request Body:**
 ```json
 {
-  "email": "user@example.com",
+  "username": "nguyenvana",
   "password": "password123"
 }
 ```
 
-**Response:** (Giống như Register)
-
-### 3. Lấy thông tin user hiện tại
-**GET** `/api/auth/me`
-
-**Headers:**
-```
-Authorization: Bearer <token>
-```
-
-**Response:**
+**Response (200 OK):**
 ```json
 {
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "type": "Bearer",
   "id": 1,
+  "username": "nguyenvana",
   "email": "user@example.com",
-  "fullName": "User Name",
+  "fullName": "Nguyễn Văn A",
   "phone": "0123456789",
-  "role": "CUSTOMER",
-  "createdAt": "2024-01-01T00:00:00"
+  "role": "CUSTOMER"
 }
 ```
 
-### 4. Cập nhật profile
-**PUT** `/api/auth/profile`
-
-**Headers:**
-```
-Authorization: Bearer <token>
-```
-
-**Request Body:**
-```json
-{
-  "id": 1,
-  "fullName": "Updated Name",
-  "phone": "0987654321"
-}
-```
-
-### 5. Đổi password
-**PUT** `/api/auth/change-password`
-
-**Headers:**
-```
-Authorization: Bearer <token>
-```
-
-**Request Body:**
-```json
-{
-  "oldPassword": "oldpassword123",
-  "newPassword": "newpassword123"
-}
-```
-
-### 6. Kiểm tra email tồn tại
-**GET** `/api/auth/check-email?email=user@example.com`
-
-**Response:**
-```json
-{
-  "exists": true
-}
-```
-
-### 7. Admin endpoint (chỉ admin)
-**GET** `/api/auth/admin`
-
-**Headers:**
-```
-Authorization: Bearer <admin_token>
-```
-
-## Cách sử dụng
-
-### 1. Cài đặt và chạy
-```bash
-# Cập nhật password MySQL trong application.properties
-# Chạy ứng dụng
-mvn spring-boot:run
-```
-
-### 2. Test API
-Sử dụng file `test_auth_api.http` với IntelliJ IDEA hoặc VS Code REST Client extension.
-
-### 3. Flow xác thực
-1. **Register/Login** → Nhận JWT token
-2. **Lưu token** → Sử dụng trong header `Authorization: Bearer <token>`
-3. **Gọi API** → Token được validate tự động
-4. **Token hết hạn** → Cần login lại
-
-## Security Features
-
-### 1. JWT Token
-- **Secret**: Cấu hình trong `application.properties`
-- **Expiration**: 24 giờ (86400000 ms)
-- **Algorithm**: HS256
-
-### 2. Password Security
-- **Encoding**: BCrypt
-- **Validation**: Tối thiểu 6 ký tự
-
-### 3. CORS
-- **Origins**: Tất cả (*)
-- **Methods**: GET, POST, PUT, DELETE, OPTIONS
-- **Headers**: Tất cả
-
-### 4. Role-based Access
-- **@PreAuthorize**: Kiểm tra role trước khi truy cập
-- **ADMIN**: Có quyền truy cập tất cả
-- **CUSTOMER**: Quyền cơ bản
-- **EMPLOYEE**: Quyền nhân viên
-
-## Error Handling
-
-### 1. Validation Errors
-```json
-{
-  "error": "Email không được để trống!"
-}
-```
-
-### 2. Authentication Errors
+**Response (401 Unauthorized) - Sai thông tin đăng nhập:**
 ```json
 {
   "error": "User không tồn tại!"
 }
 ```
 
-### 3. Authorization Errors
+### 3. Lấy thông tin người dùng hiện tại
+**GET** `/me`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": 1,
+  "username": "nguyenvana",
+  "email": "user@example.com",
+  "password": null,
+  "fullName": "Nguyễn Văn A",
+  "phone": "0123456789",
+  "role": "CUSTOMER"
+}
+```
+
+### 4. Cập nhật thông tin profile
+**PUT** `/profile`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "id": 1,
+  "fullName": "Nguyễn Văn B",
+  "phone": "0987654321"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "id": 1,
+  "username": "nguyenvana",
+  "email": "user@example.com",
+  "password": null,
+  "fullName": "Nguyễn Văn B",
+  "phone": "0987654321",
+  "role": "CUSTOMER"
+}
+```
+
+### 5. Thay đổi mật khẩu
+**PUT** `/change-password`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "oldPassword": "password123",
+  "newPassword": "newpassword123"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Đổi password thành công!"
+}
+```
+
+**Response (400 Bad Request) - Sai mật khẩu cũ:**
+```json
+{
+  "error": "Password cũ không đúng!"
+}
+```
+
+### 6. Kiểm tra username đã tồn tại
+**GET** `/check-username?username={username}`
+
+**Response (200 OK):**
+```json
+{
+  "exists": true
+}
+```
+
+### 7. Kiểm tra email đã tồn tại
+**GET** `/check-email?email={email}`
+
+**Response (200 OK):**
+```json
+{
+  "exists": true
+}
+```
+
+### 8. Endpoint dành cho Admin
+**GET** `/admin`
+
+**Headers:**
+```
+Authorization: Bearer {admin_token}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Chỉ admin mới thấy được message này!"
+}
+```
+
+**Response (403 Forbidden) - Không có quyền admin:**
 ```json
 {
   "error": "Access Denied"
 }
 ```
 
+## Các Role trong hệ thống
+
+1. **ADMIN**: Quản trị viên hệ thống
+2. **CUSTOMER**: Khách hàng (mặc định khi đăng ký)
+3. **EMPLOYEE**: Nhân viên
+
+## Xác thực JWT
+
+### Cách sử dụng token:
+1. Sau khi đăng nhập thành công, lưu token từ response
+2. Gửi token trong header `Authorization` với format: `Bearer {token}`
+3. Token có thời hạn 1 giờ (3600000 milliseconds)
+
+### Ví dụ sử dụng với curl:
+```bash
+# Đăng nhập
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"nguyenvana","password":"password123"}'
+
+# Sử dụng token để gọi API
+curl -X GET http://localhost:8080/api/auth/me \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+## Xử lý lỗi
+
+### Các mã lỗi thường gặp:
+- **400 Bad Request**: Dữ liệu đầu vào không hợp lệ
+- **401 Unauthorized**: Token không hợp lệ hoặc hết hạn
+- **403 Forbidden**: Không có quyền truy cập
+- **500 Internal Server Error**: Lỗi server
+
+### Ví dụ response lỗi:
+```json
+{
+  "error": "Username đã tồn tại!"
+}
+```
+
+## Validation Rules
+
+### RegisterRequest:
+- `username`: Bắt buộc, độ dài từ 3-255 ký tự, phải unique
+- `email`: Bắt buộc, phải là email hợp lệ, độ dài tối đa 255 ký tự, phải unique
+- `password`: Bắt buộc, tối thiểu 6 ký tự
+- `fullName`: Bắt buộc, độ dài tối đa 255 ký tự
+- `phone`: Tùy chọn, độ dài tối đa 255 ký tự
+
+### LoginRequest:
+- `username`: Bắt buộc
+- `password`: Bắt buộc
+
 ## Database Schema
 
-### Users Table
+Bảng `users` có cấu trúc:
 ```sql
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(190) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(120) NOT NULL,
-    phone VARCHAR(30),
-    role ENUM('ADMIN', 'CUSTOMER', 'EMPLOYEE') NOT NULL DEFAULT 'CUSTOMER',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    `full-name` VARCHAR(255) NOT NULL,
+    phone VARCHAR(255),
+    role ENUM('ADMIN', 'CUSTOMER', 'EMPLOYEE') NOT NULL DEFAULT 'CUSTOMER'
 );
 ```
 
-## Lưu ý
+## Bảo mật
 
-1. **Email làm username**: Không có trường username riêng
-2. **Token trong header**: Luôn sử dụng `Authorization: Bearer <token>`
-3. **Role mặc định**: CUSTOMER khi đăng ký
-4. **Password**: Tự động mã hóa khi lưu
-5. **Validation**: Tất cả input đều được validate
+1. **Password Encoding**: Sử dụng BCrypt để mã hóa mật khẩu
+2. **JWT Security**: Token được ký bằng HMAC SHA-256
+3. **CORS**: Được cấu hình để hỗ trợ cross-origin requests
+4. **Session Management**: Stateless với JWT, không lưu session
 
-## Troubleshooting
+## Test với Postman/Insomnia
 
-### 1. Token không hợp lệ
-- Kiểm tra secret key trong `application.properties`
-- Đảm bảo token chưa hết hạn
-- Kiểm tra format: `Bearer <token>`
+File `test_auth_api.http` đã được tạo sẵn với các test cases:
+- Đăng ký user mới
+- Đăng nhập
+- Lấy thông tin user
+- Cập nhật profile
+- Thay đổi password
+- Kiểm tra email
+- Test các trường hợp lỗi
 
-### 2. Database connection
-- Cập nhật password MySQL
-- Kiểm tra database `car_rental_db` đã tạo
-- Kiểm tra port 3306
-
-### 3. CORS issues
-- Kiểm tra frontend URL
-- Cấu hình CORS trong `SecurityConfig`
-
-## Development
-
-### 1. Thêm endpoint mới
-1. Tạo method trong `AuthController`
-2. Thêm logic trong `UserService`
-3. Cập nhật `SecurityConfig` nếu cần
-4. Test với `test_auth_api.http`
-
-### 2. Thêm role mới
-1. Cập nhật enum `User.Role`
-2. Thêm logic phân quyền
-3. Cập nhật database schema
-4. Test với các role khác nhau
+Sử dụng file này để test các API endpoints một cách nhanh chóng.

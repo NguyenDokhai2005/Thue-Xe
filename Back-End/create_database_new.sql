@@ -1,5 +1,5 @@
 -- =====================================================
--- Car Rental Database Creation Script
+-- Car Rental Database Creation Script (Updated Schema)
 -- =====================================================
 
 -- Xóa database cũ nếu tồn tại
@@ -14,16 +14,15 @@ COLLATE utf8mb4_unicode_ci;
 USE `car-rental`;
 
 -- =====================================================
--- Bảng users - Quản lý người dùng
+-- Bảng users - Quản lý người dùng (Updated Schema)
 -- =====================================================
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(190) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(120) NOT NULL,
-    phone VARCHAR(30),
-    role ENUM('ADMIN', 'CUSTOMER', 'EMPLOYEE') NOT NULL DEFAULT 'CUSTOMER',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    `full-name` VARCHAR(255) NOT NULL,
+    phone VARCHAR(255),
+    role ENUM('ADMIN', 'CUSTOMER', 'EMPLOYEE') NOT NULL DEFAULT 'CUSTOMER'
 );
 
 -- =====================================================
@@ -98,9 +97,8 @@ CREATE TABLE vehicle_photos (
 -- =====================================================
 
 -- Indexes cho bảng users
-CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_role ON users(role);
-CREATE INDEX idx_users_created_at ON users(created_at);
 
 -- Indexes cho bảng vehicles
 CREATE INDEX idx_vehicles_owner_id ON vehicles(owner_id);
@@ -125,49 +123,6 @@ CREATE INDEX idx_payments_created_at ON payments(created_at);
 -- Indexes cho bảng vehicle_photos
 CREATE INDEX idx_vehicle_photos_vehicle_id ON vehicle_photos(vehicle_id);
 CREATE INDEX idx_vehicle_photos_primary ON vehicle_photos(vehicle_id, is_primary);
-
--- =====================================================
--- Insert dữ liệu mẫu
--- =====================================================
-
--- Insert users mẫu
-INSERT INTO users (email, password_hash, full_name, phone, role) VALUES
-('admin@carrental.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', 'Admin User', '0123456789', 'ADMIN'),
-('customer1@example.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', 'John Doe', '0987654321', 'CUSTOMER'),
-('customer2@example.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', 'Jane Smith', '0123456780', 'CUSTOMER'),
-('employee1@example.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', 'Employee User', '0123456787', 'EMPLOYEE');
-
--- Insert vehicles mẫu
-INSERT INTO vehicles (owner_id, owner_name, title, vehicle_type, license_plate, daily_price, currency, status, description) VALUES
-(2, 'John Doe', 'Toyota Camry 2023', 'SEDAN', '30A-12345', 500000, 'VND', 'AVAILABLE', 'Xe sedan cao cấp, tiết kiệm nhiên liệu, phù hợp cho gia đình'),
-(3, 'Jane Smith', 'Honda CR-V 2023', 'SUV', '29A-67890', 700000, 'VND', 'AVAILABLE', 'Xe SUV 7 chỗ, phù hợp gia đình, không gian rộng rãi'),
-(2, 'John Doe', 'BMW X5 2023', 'SUV', '30A-11111', 1200000, 'VND', 'AVAILABLE', 'Xe SUV sang trọng, đầy đủ tiện nghi, động cơ mạnh mẽ'),
-(3, 'Jane Smith', 'Mercedes C-Class 2023', 'SEDAN', '29A-22222', 800000, 'VND', 'RENTED', 'Xe sedan sang trọng, nội thất cao cấp'),
-(2, 'John Doe', 'Ford Ranger 2023', 'PICKUP', '30A-33333', 600000, 'VND', 'AVAILABLE', 'Xe bán tải mạnh mẽ, phù hợp công việc');
-
--- Insert vehicle photos mẫu
-INSERT INTO vehicle_photos (vehicle_id, url, is_primary) VALUES
-(1, 'https://example.com/images/toyota-camry-1.jpg', 1),
-(1, 'https://example.com/images/toyota-camry-2.jpg', 0),
-(1, 'https://example.com/images/toyota-camry-3.jpg', 0),
-(2, 'https://example.com/images/honda-crv-1.jpg', 1),
-(2, 'https://example.com/images/honda-crv-2.jpg', 0),
-(3, 'https://example.com/images/bmw-x5-1.jpg', 1),
-(3, 'https://example.com/images/bmw-x5-2.jpg', 0),
-(4, 'https://example.com/images/mercedes-c-class-1.jpg', 1),
-(5, 'https://example.com/images/ford-ranger-1.jpg', 1);
-
--- Insert bookings mẫu
-INSERT INTO bookings (vehicle_id, renter_id, status, start_at, end_at, daily_price_snapshot, total_amount, currency, notes) VALUES
-(1, 2, 'COMPLETED', '2024-01-01 08:00:00', '2024-01-03 18:00:00', 500000, 1000000, 'VND', 'Thuê xe cho chuyến du lịch'),
-(2, 3, 'ACTIVE', '2024-01-15 09:00:00', '2024-01-20 17:00:00', 700000, 3500000, 'VND', 'Thuê xe cho công việc'),
-(3, 2, 'PENDING', '2024-02-01 10:00:00', '2024-02-05 16:00:00', 1200000, 6000000, 'VND', 'Thuê xe cho sự kiện quan trọng');
-
--- Insert payments mẫu
-INSERT INTO payments (booking_id, amount, currency, method, status, provider, provider_txn_id, paid_at) VALUES
-(1, 1000000, 'VND', 'CREDIT_CARD', 'COMPLETED', 'VNPay', 'VNPAY_123456789', '2024-01-01 08:30:00'),
-(2, 3500000, 'VND', 'BANK_TRANSFER', 'COMPLETED', 'Vietcombank', 'VCB_987654321', '2024-01-15 09:15:00'),
-(3, 6000000, 'VND', 'CREDIT_CARD', 'PENDING', 'VNPay', 'VNPAY_456789123', NULL);
 
 -- =====================================================
 -- Kiểm tra dữ liệu

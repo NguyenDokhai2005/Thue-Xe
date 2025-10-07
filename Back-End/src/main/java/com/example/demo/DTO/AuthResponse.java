@@ -7,7 +7,7 @@ public class AuthResponse {
     private String token;
     private String type = "Bearer";
     private Long id;
-    private String email;
+    private String username;
     private String fullName;
     private String phone;
     private User.Role role;
@@ -18,17 +18,17 @@ public class AuthResponse {
     public AuthResponse(String token, User user) {
         this.token = token;
         this.id = user.getId();
-        this.email = user.getEmail();
+        this.username = user.getUsername();
         this.fullName = user.getFullName();
         this.phone = user.getPhone();
         this.role = user.getRole();
     }
     
-    public AuthResponse(String token, String type, Long id, String email, String fullName, String phone, User.Role role) {
+    public AuthResponse(String token, String type, Long id, String username, String fullName, String phone, User.Role role) {
         this.token = token;
         this.type = type;
         this.id = id;
-        this.email = email;
+        this.username = username;
         this.fullName = fullName;
         this.phone = phone;
         this.role = role;
@@ -59,12 +59,12 @@ public class AuthResponse {
         this.id = id;
     }
     
-    public String getEmail() {
-        return email;
+    public String getUsername() {
+        return username;
     }
     
-    public void setEmail(String email) {
-        this.email = email;
+    public void setUsername(String username) {
+        this.username = username;
     }
     
     public String getFullName() {

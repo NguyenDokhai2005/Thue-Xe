@@ -1,14 +1,12 @@
 package com.example.demo.Entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -20,38 +18,32 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @NotBlank(message = "Email không được để trống")
-    @Email(message = "Email không hợp lệ")
-    @Column(unique = true, nullable = false, length = 190)
-    private String email;
+    @NotBlank(message = "Username không được để trống")
+    @Size(min = 3, max = 255, message = "Username phải có từ 3-255 ký tự")
+    @Column(unique = true, nullable = false, length = 255)
+    private String username;
     
     @NotBlank(message = "Password không được để trống")
     @Size(min = 6, message = "Password phải có ít nhất 6 ký tự")
-    @Column(name = "password_hash", nullable = false, length = 255)
+    @Column(nullable = false, length = 255)
     private String password;
     
     @NotBlank(message = "Họ tên không được để trống")
-    @Column(name = "full_name", nullable = false, length = 120)
+    @Column(name = "full-name", nullable = false, length = 255)
     private String fullName;
     
-    @Column(name = "phone", length = 30)
+    @Column(length = 255)
     private String phone;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role = Role.CUSTOMER;
     
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-    
     // Constructors
-    public User() {
-        this.createdAt = LocalDateTime.now();
-    }
+    public User() {}
     
-    public User(String email, String password, String fullName) {
-        this();
-        this.email = email;
+    public User(String username, String password, String fullName) {
+        this.username = username;
         this.password = password;
         this.fullName = fullName;
     }
@@ -69,7 +61,7 @@ public class User implements UserDetails {
     
     @Override
     public String getUsername() {
-        return email; // Use email as username
+        return username;
     }
     
     @Override
@@ -101,12 +93,8 @@ public class User implements UserDetails {
         this.id = id;
     }
     
-    public String getEmail() {
-        return email;
-    }
-    
-    public void setEmail(String email) {
-        this.email = email;
+    public void setUsername(String username) {
+        this.username = username;
     }
     
     public void setPassword(String password) {
@@ -135,14 +123,6 @@ public class User implements UserDetails {
     
     public void setRole(Role role) {
         this.role = role;
-    }
-    
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
     
     // Role enum

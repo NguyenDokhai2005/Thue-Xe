@@ -136,3 +136,5 @@ Gửi cho tôi:
 2. **Error message** cụ thể
 3. **MySQL version** và **Java version**
 4. **Operating system** (Windows/Linux/Mac)
+
+

@@ -6,7 +6,7 @@ POST http://localhost:8080/api/auth/register
 Content-Type: application/json
 
 {
-  "email": "test@example.com",
+  "username": "testuser",
   "password": "password123",
   "fullName": "Test User",
   "phone": "0123456789"
@@ -17,7 +17,7 @@ POST http://localhost:8080/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "test@example.com",
+  "username": "testuser",
   "password": "password123"
 }
 
@@ -46,8 +46,8 @@ Content-Type: application/json
   "newPassword": "newpassword123"
 }
 
-### 6. Check if email exists
-GET http://localhost:8080/api/auth/check-email?email=test@example.com
+### 6. Check if username exists
+GET http://localhost:8080/api/auth/check-username?username=testuser
 
 ### 7. Admin only endpoint (requires admin role)
 GET http://localhost:8080/api/auth/admin
@@ -58,7 +58,7 @@ POST http://localhost:8080/api/auth/register
 Content-Type: application/json
 
 {
-  "email": "admin@example.com",
+  "username": "admin",
   "password": "admin123",
   "fullName": "Admin User",
   "phone": "0123456780"
@@ -69,7 +69,7 @@ POST http://localhost:8080/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "admin@example.com",
+  "username": "admin",
   "password": "admin123"
 }
 
@@ -78,16 +78,16 @@ POST http://localhost:8080/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "wrong@example.com",
+  "username": "wronguser",
   "password": "wrongpassword"
 }
 
-### 11. Test register with existing email
+### 11. Test register with existing username
 POST http://localhost:8080/api/auth/register
 Content-Type: application/json
 
 {
-  "email": "test@example.com",
+  "username": "testuser",
   "password": "password123",
   "fullName": "Another User",
   "phone": "0123456788"

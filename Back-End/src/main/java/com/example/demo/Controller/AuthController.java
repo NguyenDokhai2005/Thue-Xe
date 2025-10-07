@@ -116,12 +116,12 @@ public class AuthController {
     }
     
     /**
-     * Kiểm tra email đã tồn tại chưa
-     * GET /api/auth/check-email?email=...
+     * Kiểm tra username đã tồn tại chưa
+     * GET /api/auth/check-username?username=...
      */
-    @GetMapping("/check-email")
-    public ResponseEntity<?> checkEmail(@RequestParam String email) {
-        boolean exists = userService.findByEmail(email).isPresent();
+    @GetMapping("/check-username")
+    public ResponseEntity<?> checkUsername(@RequestParam String username) {
+        boolean exists = userService.findByUsername(username).isPresent();
         Map<String, Object> response = new HashMap<>();
         response.put("exists", exists);
         return ResponseEntity.ok(response);

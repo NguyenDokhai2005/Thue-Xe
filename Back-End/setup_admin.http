@@ -1,5 +1,8 @@
-### Tạo tài khoản admin qua API
-POST http://localhost:8080/api/auth/register
+### Kiểm tra admin có tồn tại không
+GET http://localhost:8080/api/admin-setup/check-admin
+
+### Tạo tài khoản admin
+POST http://localhost:8080/api/admin-setup/create-admin
 Content-Type: application/json
 
 {

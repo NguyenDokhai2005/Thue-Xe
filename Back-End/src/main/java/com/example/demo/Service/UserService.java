@@ -40,14 +40,14 @@ public class UserService implements UserDetailsService {
      * Đăng ký user mới
      */
     public AuthResponse register(RegisterRequest registerRequest) {
-        // Kiểm tra email đã tồn tại chưa
-        if (userRepository.existsByEmail(registerRequest.getEmail())) {
-            throw new RuntimeException("Email đã tồn tại!");
+        // Kiểm tra username đã tồn tại chưa
+        if (userRepository.existsByUsername(registerRequest.getUsername())) {
+            throw new RuntimeException("Username đã tồn tại!");
         }
         
         // Tạo user mới
         User user = new User();
-        user.setEmail(registerRequest.getEmail());
+        user.setUsername(registerRequest.getUsername());
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setFullName(registerRequest.getFullName());
         user.setPhone(registerRequest.getPhone());
@@ -70,13 +70,13 @@ public class UserService implements UserDetailsService {
         // Xác thực user
         authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(
-                loginRequest.getEmail(),
+                loginRequest.getUsername(),
                 loginRequest.getPassword()
             )
         );
         
         // Lấy user từ database
-        User user = userRepository.findByEmail(loginRequest.getEmail())
+        User user = userRepository.findByUsername(loginRequest.getUsername())
             .orElseThrow(() -> new RuntimeException("User không tồn tại!"));
         
         // Tạo JWT token
@@ -95,8 +95,8 @@ public class UserService implements UserDetailsService {
             throw new RuntimeException("User chưa đăng nhập!");
         }
         
-        String email = authentication.getName();
-        return userRepository.findByEmail(email)
+        String username = authentication.getName();
+        return userRepository.findByUsername(username)
             .orElseThrow(() -> new RuntimeException("User không tồn tại!"));
     }
     
@@ -139,10 +139,10 @@ public class UserService implements UserDetailsService {
     }
     
     /**
-     * Tìm user theo email
+     * Tìm user theo username
      */
-    public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
     
     /**
@@ -150,7 +150,7 @@ public class UserService implements UserDetailsService {
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(username)
+        User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("User không tồn tại: " + username));
         
         return user;
