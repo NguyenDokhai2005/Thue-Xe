@@ -13,11 +13,14 @@ import java.util.List;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
-    @Query("select b from Booking b where b.vehicle = :vehicle and b.status in (com.example.demo.Entity.Booking$Status.CONFIRMED, com.example.demo.Entity.Booking$Status.ACTIVE) and (b.startAt < :endAt and b.endAt > :startAt)")
+    @Query("SELECT b FROM Booking b WHERE b.vehicle = :vehicle AND b.status IN (com.example.demo.Entity.Booking$BookingStatus.PENDING, com.example.demo.Entity.Booking$BookingStatus.CONFIRMED, com.example.demo.Entity.Booking$BookingStatus.ACTIVE) AND (:startAt < b.endAt AND :endAt > b.startAt)")
     List<Booking> findOverlaps(@Param("vehicle") Vehicle vehicle,
                                @Param("startAt") LocalDateTime startAt,
                                @Param("endAt") LocalDateTime endAt);
+
+    List<Booking> findByRenterIdOrderByCreatedAtDesc(Long renterId);
 }
+
 
 
 

@@ -1,0 +1,90 @@
+### Booking API Tests (standalone)
+
+### Prerequisites
+### - {{admin_token}}: JWT token of an admin
+### - {{user_token}}: JWT token of a normal user
+### - {{vehicle_id}}: Existing vehicle ID to book
+### - {{start_iso}} / {{end_iso}}: ISO-8601 times (e.g., 2025-10-20T09:00:00)
+### - {{booking_id}}: ID returned from create or /me list
+
+### 1) Create booking (USER)
+POST http://localhost:8080/api/bookings
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "vehicleId": {{vehicle_id}},
+  "startAt": "{{start_iso}}",
+  "endAt": "{{end_iso}}",
+  "notes": "Thuê cuối tuần"
+}
+
+### 1a) Create booking - Ví dụ cụ thể (USER)
+POST http://localhost:8080/api/bookings
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.DEMO_TOKEN_REPLACE_ME.signature
+Content-Type: application/json
+
+{
+  "vehicleId": 1,
+  "startAt": "2025-10-21T08:00:00",
+  "endAt": "2025-10-21T20:00:00",
+  "notes": "Thuê trong ngày"
+}
+
+### 2) Get my bookings (USER)
+GET http://localhost:8080/api/bookings/me
+Authorization: Bearer {{user_token}}
+
+### 2a) Get my bookings - Ví dụ cụ thể (USER)
+GET http://localhost:8080/api/bookings/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.DEMO_TOKEN_REPLACE_ME.signature
+
+### 3) Admin confirm booking (now moves PENDING -> ACTIVE and marks vehicle RENTED)
+POST http://localhost:8080/api/bookings/{{booking_id}}/confirm
+Authorization: Bearer {{admin_token}}
+
+### 3a) Admin confirm booking - Ví dụ cụ thể
+POST http://localhost:8080/api/bookings/10/confirm
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ADMIN_DEMO_TOKEN_REPLACE_ME.signature
+
+### 4) Admin complete booking
+POST http://localhost:8080/api/bookings/{{booking_id}}/complete
+Authorization: Bearer {{admin_token}}
+
+### 4a) Admin complete booking - Ví dụ cụ thể
+POST http://localhost:8080/api/bookings/10/complete
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ADMIN_DEMO_TOKEN_REPLACE_ME.signature
+
+### 5) Cancel booking (USER or ADMIN)
+POST http://localhost:8080/api/bookings/{{booking_id}}/cancel
+Authorization: Bearer {{user_token}}
+
+### 5a) Cancel booking - Ví dụ cụ thể (USER)
+POST http://localhost:8080/api/bookings/11/cancel
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.DEMO_TOKEN_REPLACE_ME.signature
+
+### 6) Negative test: Overlap booking (expect 400)
+POST http://localhost:8080/api/bookings
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "vehicleId": {{vehicle_id}},
+  "startAt": "{{start_iso}}",
+  "endAt": "{{end_iso}}",
+  "notes": "Overlap check"
+}
+
+### 6a) Negative test - Ví dụ cụ thể (OVERLAP, expect 400)
+POST http://localhost:8080/api/bookings
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.DEMO_TOKEN_REPLACE_ME.signature
+Content-Type: application/json
+
+{
+  "vehicleId": 1,
+  "startAt": "2025-10-20T09:00:00",
+  "endAt": "2025-10-21T10:00:00",
+  "notes": "Trùng với seed_data"
+}
+
+

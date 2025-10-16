@@ -1,0 +1,212 @@
+{
+  "info": {
+    "name": "Car-Rental - Vehicle Search",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Bộ sưu tập Postman test API tìm kiếm phương tiện: theo giá, loại, và ngày."
+  },
+  "item": [
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"alice123\"\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Vehicles - Search by Price",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/vehicles/search/by-price?minPrice={{minPrice}}&maxPrice={{maxPrice}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "vehicles",
+            "search",
+            "by-price"
+          ],
+          "query": [
+            {
+              "key": "minPrice",
+              "value": "{{minPrice}}"
+            },
+            {
+              "key": "maxPrice",
+              "value": "{{maxPrice}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Vehicles - Search by Type",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/vehicles/search/by-type?type={{type}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "vehicles",
+            "search",
+            "by-type"
+          ],
+          "query": [
+            {
+              "key": "type",
+              "value": "{{type}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Vehicles - Search by Date Availability",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/vehicles/search/by-date?startAt={{startAt}}&endAt={{endAt}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "vehicles",
+            "search",
+            "by-date"
+          ],
+          "query": [
+            {
+              "key": "startAt",
+              "value": "{{startAt}}"
+            },
+            {
+              "key": "endAt",
+              "value": "{{endAt}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Vehicles - Combined Search (optional)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/vehicles/search?type={{type}}&minPrice={{minPrice}}&maxPrice={{maxPrice}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "vehicles",
+            "search"
+          ],
+          "query": [
+            {
+              "key": "type",
+              "value": "{{type}}"
+            },
+            {
+              "key": "minPrice",
+              "value": "{{minPrice}}"
+            },
+            {
+              "key": "maxPrice",
+              "value": "{{maxPrice}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "minPrice",
+      "value": "200000"
+    },
+    {
+      "key": "maxPrice",
+      "value": "700000"
+    },
+    {
+      "key": "type",
+      "value": "SUV"
+    },
+    {
+      "key": "startAt",
+      "value": "2025-10-20T09:00:00"
+    },
+    {
+      "key": "endAt",
+      "value": "2025-10-22T10:00:00"
+    }
+  ]
+}
+
+

@@ -1,6 +1,7 @@
 package com.example.demo.Entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
@@ -14,17 +15,18 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicle_id", nullable = false)
     private Vehicle vehicle;
 
-    // renter_id and relations omitted for brevity; not needed for availability filter
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "renter_id", nullable = false)
+    private User renter;
 
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private Status status = Status.PENDING;
+    private BookingStatus status = BookingStatus.PENDING;
 
     @NotNull
     @Column(name = "start_at", nullable = false)
@@ -35,14 +37,29 @@ public class Booking {
     private LocalDateTime endAt;
 
     @NotNull
+    @DecimalMin("0.0")
     @Column(name = "daily_price_snapshot", nullable = false, precision = 10, scale = 2)
     private BigDecimal dailyPriceSnapshot;
 
     @NotNull
+    @DecimalMin("0.0")
     @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
 
-    public enum Status {
+    @NotNull
+    @Column(name = "currency", nullable = false, length = 3)
+    private String currency = "VND";
+
+    @Column(name = "notes", length = 255)
+    private String notes;
+
+    @Column(name = "created_at", insertable = false, updatable = false)
+    private java.sql.Timestamp createdAt;
+
+    @Column(name = "updated_at", insertable = false, updatable = false)
+    private java.sql.Timestamp updatedAt;
+
+    public enum BookingStatus {
         PENDING, CONFIRMED, ACTIVE, COMPLETED, CANCELLED, REFUNDED
     }
 
@@ -58,11 +75,19 @@ public class Booking {
         this.vehicle = vehicle;
     }
 
-    public Status getStatus() {
+    public User getRenter() {
+        return renter;
+    }
+
+    public void setRenter(User renter) {
+        this.renter = renter;
+    }
+
+    public BookingStatus getStatus() {
         return status;
     }
 
-    public void setStatus(Status status) {
+    public void setStatus(BookingStatus status) {
         this.status = status;
     }
 
@@ -97,7 +122,30 @@ public class Booking {
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
     }
-}
 
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
+    public java.sql.Timestamp getCreatedAt() {
+        return createdAt;
+    }
+
+    public java.sql.Timestamp getUpdatedAt() {
+        return updatedAt;
+    }
+}
 
 
