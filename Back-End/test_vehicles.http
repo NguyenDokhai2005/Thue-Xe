@@ -48,4 +48,36 @@ Content-Type: application/json
 DELETE http://localhost:8080/api/vehicles/{{vehicle_id}}
 Authorization: Bearer {{admin_token}}
 
+### 7) Tạo booking (USER)
+POST http://localhost:8080/api/bookings
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "vehicleId": {{vehicle_id}},
+  "startAt": "{{start_iso}}",
+  "endAt": "{{end_iso}}",
+  "notes": "Thuê cuối tuần"
+}
+
+### 8) Xem booking của tôi (USER)
+GET http://localhost:8080/api/bookings/me
+Authorization: Bearer {{user_token}}
+
+### 9) Admin confirm booking
+POST http://localhost:8080/api/bookings/{{booking_id}}/confirm
+Authorization: Bearer {{admin_token}}
+
+### 10) Admin activate booking
+POST http://localhost:8080/api/bookings/{{booking_id}}/activate
+Authorization: Bearer {{admin_token}}
+
+### 11) Admin complete booking
+POST http://localhost:8080/api/bookings/{{booking_id}}/complete
+Authorization: Bearer {{admin_token}}
+
+### 12) Cancel booking (USER or ADMIN)
+POST http://localhost:8080/api/bookings/{{booking_id}}/cancel
+Authorization: Bearer {{user_token}}
+
 
