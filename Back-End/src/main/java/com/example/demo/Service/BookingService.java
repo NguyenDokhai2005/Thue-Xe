@@ -97,7 +97,11 @@ public class BookingService {
         if (!overlaps.isEmpty()) {
             throw new RuntimeException("Xe đã được đặt trong khoảng thời gian này");
         }
-        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+        // Move directly to ACTIVE and mark vehicle as RENTED
+        booking.setStatus(Booking.BookingStatus.ACTIVE);
+        Vehicle vehicle = booking.getVehicle();
+        vehicle.setStatus(Vehicle.VehicleStatus.RENTED);
+        vehicleRepository.save(vehicle);
         return bookingRepository.save(booking);
     }
 
