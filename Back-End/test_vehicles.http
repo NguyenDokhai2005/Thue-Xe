@@ -1,0 +1,51 @@
+### 0) Tạo admin mặc định (nếu chưa có)
+POST http://localhost:8080/api/admin-setup/create-default-admin
+
+### 1) Đăng nhập admin để lấy token
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+  {
+    "username": "admin",
+    "password": "admin123"
+  }
+
+### 2) Tạo mới vehicle (ADMIN)
+POST http://localhost:8080/api/vehicles
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "title": "Toyota Camry 2023",
+  "vehicleType": "SEDAN",
+  "licensePlate": "30A-123.45",
+  "dailyPrice": 500000,
+  "currency": "VND",
+  "description": "Xe sạch, mới, tiết kiệm xăng"
+}
+
+### 3) Danh sách vehicles (PUBLIC)
+GET http://localhost:8080/api/vehicles
+
+### 4) Lấy chi tiết vehicle theo ID (PUBLIC)
+GET http://localhost:8080/api/vehicles/{{vehicle_id}}
+
+### 5) Cập nhật vehicle (ADMIN)
+PUT http://localhost:8080/api/vehicles/{{vehicle_id}}
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "title": "Toyota Camry 2023 - Updated",
+  "vehicleType": "SEDAN",
+  "licensePlate": "30A-123.45",
+  "dailyPrice": 520000,
+  "currency": "VND",
+  "description": "Đã vệ sinh nội thất"
+}
+
+### 6) Xóa vehicle (ADMIN)
+DELETE http://localhost:8080/api/vehicles/{{vehicle_id}}
+Authorization: Bearer {{admin_token}}
+
+

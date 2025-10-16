@@ -66,7 +66,7 @@ POST http://localhost:8080/api/admin-setup/create-default-admin
 
 ### 4. Liệt kê tất cả admin
 ```http
-GET http://localhost:8080/api/admin-setup/list-admins
+GET c
 ```
 
 **Response:**
