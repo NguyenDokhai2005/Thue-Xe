@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import org.springframework.format.annotation.DateTimeFormat;
 
 @RestController
 @RequestMapping("/api/vehicles")
@@ -24,6 +27,46 @@ public class VehicleController {
     @GetMapping
     public List<VehicleResponse> listVehicles() {
         return vehicleService.listVehicles().stream()
+                .map(VehicleResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/search")
+    public List<VehicleResponse> searchVehicles(
+            @RequestParam(required = false) Vehicle.VehicleType type,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice
+    ) {
+        return vehicleService.searchVehicles(type, minPrice, maxPrice).stream()
+                .map(VehicleResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/search/by-price")
+    public List<VehicleResponse> searchByPrice(
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice
+    ) {
+        return vehicleService.searchByPrice(minPrice, maxPrice).stream()
+                .map(VehicleResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/search/by-type")
+    public List<VehicleResponse> searchByType(
+            @RequestParam Vehicle.VehicleType type
+    ) {
+        return vehicleService.searchByType(type).stream()
+                .map(VehicleResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/search/by-date")
+    public List<VehicleResponse> searchByDate(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startAt,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endAt
+    ) {
+        return vehicleService.searchByDateAvailability(startAt, endAt).stream()
                 .map(VehicleResponse::fromEntity)
                 .collect(Collectors.toList());
     }
