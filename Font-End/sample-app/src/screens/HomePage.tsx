@@ -1,9 +1,28 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const HomePage: React.FC = () => {
+  const navigation = useNavigation<any>();
+
+  const handleNavigateToSearch = () => {
+    navigation.navigate('Search');
+  };
+
+  const handleNavigateToOrders = () => {
+    navigation.navigate('Orders');
+  };
+
+  const handleNavigateToProfile = () => {
+    navigation.navigate('Profile');
+  };
+
+  const handleNavigateToLogin = () => {
+    navigation.navigate('Profile');
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.headerTitle}>RentCar Pro</Text>
@@ -24,24 +43,24 @@ const HomePage: React.FC = () => {
         </Text>
 
         <View style={styles.featuresRow}>
-          <View style={styles.feature}>
-            <Ionicons name="home" color="#0d62ff" size={16} />
-            <Text style={styles.featureText}>Quick Access</Text>
-          </View>
-          <View style={styles.feature}>
+          <TouchableOpacity style={styles.feature} onPress={handleNavigateToSearch}>
             <Ionicons name="search" color="#0d62ff" size={16} />
             <Text style={styles.featureText}>Smart Search</Text>
-          </View>
-        </View>
-        <View style={styles.featuresRow}>
-          <View style={styles.feature}>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.feature} onPress={handleNavigateToOrders}>
             <Ionicons name="calendar" color="#0d62ff" size={16} />
             <Text style={styles.featureText}>Easy Booking</Text>
-          </View>
-          <View style={styles.feature}>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.featuresRow}>
+          <TouchableOpacity style={styles.feature} onPress={handleNavigateToProfile}>
             <Ionicons name="person" color="#0d62ff" size={16} />
             <Text style={styles.featureText}>Your Profile</Text>
-          </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.feature} onPress={handleNavigateToLogin}>
+            <Ionicons name="log-in" color="#0d62ff" size={16} />
+            <Text style={styles.featureText}>Login</Text>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
     </View>
