@@ -1,0 +1,132 @@
+### Test Phân Quyền Đơn Giản - Demo Car Rental
+
+### 1. Lấy permissions của user hiện tại
+GET http://localhost:8080/api/simple-permissions/my-permissions
+Authorization: Bearer {{user_token}}
+
+### 2. Lấy permissions của role ADMIN
+GET http://localhost:8080/api/simple-permissions/role/ADMIN
+Authorization: Bearer {{admin_token}}
+
+### 3. Lấy permissions của role EMPLOYEE
+GET http://localhost:8080/api/simple-permissions/role/EMPLOYEE
+Authorization: Bearer {{admin_token}}
+
+### 4. Lấy permissions của role CUSTOMER
+GET http://localhost:8080/api/simple-permissions/role/CUSTOMER
+Authorization: Bearer {{admin_token}}
+
+### 5. Kiểm tra permission CREATE
+GET http://localhost:8080/api/simple-permissions/check?permission=CREATE
+Authorization: Bearer {{user_token}}
+
+### 6. Kiểm tra permission DELETE
+GET http://localhost:8080/api/simple-permissions/check?permission=DELETE
+Authorization: Bearer {{user_token}}
+
+### 7. Lấy tất cả permissions
+GET http://localhost:8080/api/simple-permissions/all
+
+### 8. Test endpoint chỉ admin
+GET http://localhost:8080/api/simple-permissions/admin-only
+Authorization: Bearer {{admin_token}}
+
+### 9. Test endpoint employee hoặc admin
+GET http://localhost:8080/api/simple-permissions/employee-or-admin
+Authorization: Bearer {{employee_token}}
+
+### Test Phân Quyền Trên Endpoints
+
+### 10. Customer xem xe (✅ Thành công)
+GET http://localhost:8080/api/vehicles
+Authorization: Bearer {{customer_token}}
+
+### 11. Customer tạo xe (❌ Bị từ chối)
+POST http://localhost:8080/api/vehicles
+Authorization: Bearer {{customer_token}}
+Content-Type: application/json
+
+{
+  "brand": "Toyota",
+  "model": "Camry",
+  "type": "SEDAN",
+  "price": 500000,
+  "description": "Xe sedan cao cấp"
+}
+
+### 12. Admin tạo xe (✅ Thành công)
+POST http://localhost:8080/api/vehicles
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "brand": "Honda",
+  "model": "Civic",
+  "type": "SEDAN",
+  "price": 400000,
+  "description": "Xe sedan tiết kiệm"
+}
+
+### 13. Customer đặt xe (✅ Thành công)
+POST http://localhost:8080/api/bookings
+Authorization: Bearer {{customer_token}}
+Content-Type: application/json
+
+{
+  "vehicleId": 1,
+  "startDate": "2024-01-01T10:00:00",
+  "endDate": "2024-01-03T18:00:00"
+}
+
+### 14. Employee xác nhận đặt xe (✅ Thành công)
+POST http://localhost:8080/api/bookings/1/confirm
+Authorization: Bearer {{employee_token}}
+
+### 15. Customer xác nhận đặt xe (❌ Bị từ chối)
+POST http://localhost:8080/api/bookings/1/confirm
+Authorization: Bearer {{customer_token}}
+
+### 16. Customer xem đặt xe của mình (✅ Thành công)
+GET http://localhost:8080/api/bookings/me
+Authorization: Bearer {{customer_token}}
+
+### 17. Employee xem đặt xe của mình (❌ Bị từ chối)
+GET http://localhost:8080/api/bookings/me
+Authorization: Bearer {{employee_token}}
+
+### 18. Admin xem đặt xe của mình (✅ Thành công)
+GET http://localhost:8080/api/bookings/me
+Authorization: Bearer {{admin_token}}
+
+### Test Lỗi Phân Quyền
+
+### 19. Không có token (❌ 401 Unauthorized)
+GET http://localhost:8080/api/vehicles
+
+### 20. Token không hợp lệ (❌ 401 Unauthorized)
+GET http://localhost:8080/api/vehicles
+Authorization: Bearer invalid_token
+
+### 21. Customer truy cập endpoint admin (❌ 403 Forbidden)
+GET http://localhost:8080/api/simple-permissions/admin-only
+Authorization: Bearer {{customer_token}}
+
+### 22. Employee truy cập endpoint admin (❌ 403 Forbidden)
+GET http://localhost:8080/api/simple-permissions/admin-only
+Authorization: Bearer {{employee_token}}
+
+### 23. Admin truy cập endpoint admin (✅ Thành công)
+GET http://localhost:8080/api/simple-permissions/admin-only
+Authorization: Bearer {{admin_token}}
+
+### 24. Customer truy cập endpoint employee (❌ 403 Forbidden)
+GET http://localhost:8080/api/simple-permissions/employee-or-admin
+Authorization: Bearer {{customer_token}}
+
+### 25. Employee truy cập endpoint employee (✅ Thành công)
+GET http://localhost:8080/api/simple-permissions/employee-or-admin
+Authorization: Bearer {{employee_token}}
+
+### 26. Admin truy cập endpoint employee (✅ Thành công)
+GET http://localhost:8080/api/simple-permissions/employee-or-admin
+Authorization: Bearer {{admin_token}}

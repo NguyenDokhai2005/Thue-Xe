@@ -22,12 +22,14 @@ public class BookingController {
     private BookingService bookingService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CUSTOMER')")
     public ResponseEntity<BookingResponse> create(@Valid @RequestBody BookingCreateRequest request) {
         Booking created = bookingService.createBooking(request);
         return ResponseEntity.ok(BookingResponse.fromEntity(created));
     }
 
     @GetMapping("/me")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('CUSTOMER')")
     public List<BookingResponse> myBookings() {
         return bookingService.getMyBookings().stream()
                 .map(BookingResponse::fromEntity)
@@ -35,24 +37,25 @@ public class BookingController {
     }
 
     @PostMapping("/{id}/confirm")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<BookingResponse> confirm(@PathVariable Long id) {
         return ResponseEntity.ok(BookingResponse.fromEntity(bookingService.confirm(id)));
     }
 
     @PostMapping("/{id}/activate")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<BookingResponse> activate(@PathVariable Long id) {
         return ResponseEntity.ok(BookingResponse.fromEntity(bookingService.activate(id)));
     }
 
     @PostMapping("/{id}/complete")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<BookingResponse> complete(@PathVariable Long id) {
         return ResponseEntity.ok(BookingResponse.fromEntity(bookingService.complete(id)));
     }
 
     @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('CUSTOMER')")
     public ResponseEntity<BookingResponse> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(BookingResponse.fromEntity(bookingService.cancel(id)));
     }
