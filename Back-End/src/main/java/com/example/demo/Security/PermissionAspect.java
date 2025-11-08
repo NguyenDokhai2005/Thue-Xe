@@ -1,7 +1,7 @@
 package com.example.demo.Security;
 
 import com.example.demo.Entity.Permission;
-import com.example.demo.Service.PermissionService;
+import com.example.demo.Service.SimplePermissionService;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -18,7 +18,7 @@ import java.util.Map;
 public class PermissionAspect {
     
     @Autowired
-    private PermissionService permissionService;
+    private SimplePermissionService permissionService;
     
     @Around("@annotation(requirePermission)")
     public Object checkPermission(ProceedingJoinPoint joinPoint, RequirePermission requirePermission) throws Throwable {
