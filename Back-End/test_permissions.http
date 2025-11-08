@@ -1,0 +1,144 @@
+### Test Phân Quyền Hệ Thống Car Rental
+
+### 1. Khởi tạo permissions mặc định (chỉ admin)
+POST http://localhost:8080/api/permissions/initialize
+Authorization: Bearer {{admin_token}}
+
+### 2. Lấy permissions của user hiện tại
+GET http://localhost:8080/api/permissions/my-permissions
+Authorization: Bearer {{user_token}}
+
+### 3. Lấy permissions của role ADMIN
+GET http://localhost:8080/api/permissions/role/ADMIN
+Authorization: Bearer {{admin_token}}
+
+### 4. Lấy permissions của role EMPLOYEE
+GET http://localhost:8080/api/permissions/role/EMPLOYEE
+Authorization: Bearer {{admin_token}}
+
+### 5. Lấy permissions của role CUSTOMER
+GET http://localhost:8080/api/permissions/role/CUSTOMER
+Authorization: Bearer {{admin_token}}
+
+### 6. Lấy permissions theo module
+GET http://localhost:8080/api/permissions/module/user
+Authorization: Bearer {{admin_token}}
+
+GET http://localhost:8080/api/permissions/module/vehicle
+Authorization: Bearer {{admin_token}}
+
+GET http://localhost:8080/api/permissions/module/booking
+Authorization: Bearer {{admin_token}}
+
+### 7. Lấy tất cả permissions
+GET http://localhost:8080/api/permissions/all
+Authorization: Bearer {{admin_token}}
+
+### 8. Gán permissions cho role
+POST http://localhost:8080/api/permissions/assign
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "role": "EMPLOYEE",
+  "permissions": ["VEHICLE_CREATE", "VEHICLE_UPDATE", "VEHICLE_DELETE"]
+}
+
+### 9. Thêm permission cho role
+POST http://localhost:8080/api/permissions/add
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "role": "EMPLOYEE",
+  "permission": "USER_CREATE"
+}
+
+### 10. Xóa permission khỏi role
+DELETE http://localhost:8080/api/permissions/remove
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "role": "EMPLOYEE",
+  "permission": "USER_CREATE"
+}
+
+### Test Phân Quyền Trên Endpoints
+
+### 11. Test xem xe (cần VEHICLE_VIEW)
+GET http://localhost:8080/api/vehicles
+Authorization: Bearer {{user_token}}
+
+### 12. Test tìm kiếm xe (cần VEHICLE_SEARCH)
+GET http://localhost:8080/api/vehicles/search?type=SEDAN
+Authorization: Bearer {{user_token}}
+
+### 13. Test tạo xe (cần VEHICLE_CREATE - chỉ admin/employee có quyền)
+POST http://localhost:8080/api/vehicles
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "brand": "Toyota",
+  "model": "Camry",
+  "type": "SEDAN",
+  "price": 500000,
+  "description": "Xe sedan cao cấp"
+}
+
+### 14. Test đặt xe (cần BOOKING_CREATE)
+POST http://localhost:8080/api/bookings
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "vehicleId": 1,
+  "startDate": "2024-01-01T10:00:00",
+  "endDate": "2024-01-03T18:00:00"
+}
+
+### 15. Test xem đặt xe của mình (cần BOOKING_VIEW_MY)
+GET http://localhost:8080/api/bookings/me
+Authorization: Bearer {{user_token}}
+
+### 16. Test xác nhận đặt xe (cần BOOKING_CONFIRM - chỉ admin/employee)
+POST http://localhost:8080/api/bookings/1/confirm
+Authorization: Bearer {{employee_token}}
+
+### 17. Test kích hoạt đặt xe (cần BOOKING_ACTIVATE - chỉ admin/employee)
+POST http://localhost:8080/api/bookings/1/activate
+Authorization: Bearer {{employee_token}}
+
+### 18. Test hoàn thành đặt xe (cần BOOKING_COMPLETE - chỉ admin/employee)
+POST http://localhost:8080/api/bookings/1/complete
+Authorization: Bearer {{employee_token}}
+
+### 19. Test hủy đặt xe (cần BOOKING_CANCEL)
+POST http://localhost:8080/api/bookings/1/cancel
+Authorization: Bearer {{user_token}}
+
+### Test Lỗi Phân Quyền
+
+### 20. Test truy cập endpoint không có quyền (sẽ trả về 403)
+POST http://localhost:8080/api/vehicles
+Authorization: Bearer {{customer_token}}
+Content-Type: application/json
+
+{
+  "brand": "Honda",
+  "model": "Civic",
+  "type": "SEDAN",
+  "price": 400000
+}
+
+### 21. Test truy cập endpoint admin (sẽ trả về 403)
+GET http://localhost:8080/api/permissions/all
+Authorization: Bearer {{customer_token}}
+
+### 22. Test truy cập không có token (sẽ trả về 401)
+GET http://localhost:8080/api/vehicles
+
+### 23. Test truy cập với token không hợp lệ (sẽ trả về 401)
+GET http://localhost:8080/api/vehicles
+Authorization: Bearer invalid_token

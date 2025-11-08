@@ -5,6 +5,7 @@ import com.example.demo.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -25,6 +26,7 @@ import java.util.Arrays;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
+@EnableAspectJAutoProxy
 public class SecurityConfig {
     
     @Autowired
@@ -63,7 +65,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin-setup/**").permitAll()
                 // Admin only endpoints
                 .requestMatchers("/api/auth/admin").hasRole("ADMIN")
-                .requestMatchers("/api/vehicles/**").hasRole("ADMIN")
+                .requestMatchers("/api/permissions/**").hasRole("ADMIN")
                 // Authenticated endpoints
                 .requestMatchers("/api/auth/me", "/api/auth/profile", "/api/auth/change-password").authenticated()
                 // All other requests need authentication

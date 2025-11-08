@@ -25,6 +25,7 @@ public class VehicleController {
     private VehicleService vehicleService;
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('CUSTOMER')")
     public List<VehicleResponse> listVehicles() {
         return vehicleService.listVehicles().stream()
                 .map(VehicleResponse::fromEntity)
@@ -32,6 +33,7 @@ public class VehicleController {
     }
 
     @GetMapping("/search")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('CUSTOMER')")
     public List<VehicleResponse> searchVehicles(
             @RequestParam(required = false) Vehicle.VehicleType type,
             @RequestParam(required = false) BigDecimal minPrice,
@@ -43,6 +45,7 @@ public class VehicleController {
     }
 
     @GetMapping("/search/by-price")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('CUSTOMER')")
     public List<VehicleResponse> searchByPrice(
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice
@@ -53,6 +56,7 @@ public class VehicleController {
     }
 
     @GetMapping("/search/by-type")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('CUSTOMER')")
     public List<VehicleResponse> searchByType(
             @RequestParam Vehicle.VehicleType type
     ) {
@@ -62,6 +66,7 @@ public class VehicleController {
     }
 
     @GetMapping("/search/by-date")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('CUSTOMER')")
     public List<VehicleResponse> searchByDate(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startAt,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endAt
@@ -72,6 +77,7 @@ public class VehicleController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('CUSTOMER')")
     public VehicleResponse getVehicle(@PathVariable Long id) {
         return VehicleResponse.fromEntity(vehicleService.getVehicle(id));
     }
