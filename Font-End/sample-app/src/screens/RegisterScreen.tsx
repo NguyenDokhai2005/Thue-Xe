@@ -1,9 +1,20 @@
+// RegisterScreen.tsx
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, Alert
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  Alert,
+  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import api from '../api/axiosInstance'; // Dùng axios instance (tự động gắn baseURL)
 
 const RegisterScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -16,26 +27,31 @@ const RegisterScreen: React.FC = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleGoBack = () => {
-    navigation.goBack();
-  };
+  const handleGoBack = () => navigation.goBack();
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const validateForm = () => {
-    if (!formData.username || !formData.password || !formData.fullName || !formData.phone) {
+    const { username, password, confirmPassword, fullName, phone } = formData;
+
+    if (!username || !password || !fullName || !phone) {
       Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin');
       return false;
     }
-    if (formData.password !== formData.confirmPassword) {
+    if (password !== confirmPassword) {
       Alert.alert('Lỗi', 'Mật khẩu xác nhận không khớp');
       return false;
     }
-    if (formData.password.length < 6) {
+    if (password.length < 6) {
       Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
+      return false;
+    }
+    if (!/^\d{10,11}$/.test(phone.replace(/[\s\-\(\)]/g, ''))) {
+      Alert.alert('Lỗi', 'Số điện thoại không hợp lệ');
       return false;
     }
     return true;
@@ -44,31 +60,27 @@ const RegisterScreen: React.FC = () => {
   const handleRegister = async () => {
     if (!validateForm()) return;
 
+    setLoading(true);
     try {
-      // TODO: Implement API call to register
-      const response = await fetch('http://localhost:8080/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          password: formData.password,
-          fullName: formData.fullName,
-          phone: formData.phone
-        }),
-      });
+      const payload = {
+        username: formData.username.trim(),
+        password: formData.password,
+        fullName: formData.fullName.trim(),
+        phone: formData.phone.trim(),
+      };
 
-      if (response.ok) {
-        Alert.alert('Thành công', 'Đăng ký thành công!', [
-          { text: 'OK', onPress: () => navigation.navigate('LoginScreen') }
-        ]);
-      } else {
-        const error = await response.json();
-        Alert.alert('Lỗi', error.message || 'Đăng ký thất bại');
-      }
-    } catch (error) {
-      Alert.alert('Lỗi', 'Không thể kết nối đến server');
+      const response = await api.post('/api/auth/register', payload);
+
+      // Thành công
+      Alert.alert('Thành công', 'Đăng ký thành công! Vui lòng đăng nhập.', [
+        { text: 'OK', onPress: () => navigation.replace('LoginScreen') }
+      ]);
+    } catch (error: any) {
+      // Xử lý lỗi từ backend
+      const msg = error.response?.data?.message || error.message || 'Đăng ký thất bại';
+      Alert.alert('Đăng ký thất bại', msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -96,7 +108,8 @@ const RegisterScreen: React.FC = () => {
               placeholder="Nhập tên đăng nhập"
               placeholderTextColor="#999"
               value={formData.username}
-              onChangeText={(value) => handleInputChange('username', value)}
+              onChangeText={(v) => handleInputChange('username', v)}
+              autoCapitalize="none"
             />
           </View>
 
@@ -107,7 +120,7 @@ const RegisterScreen: React.FC = () => {
               placeholder="Nhập họ và tên"
               placeholderTextColor="#999"
               value={formData.fullName}
-              onChangeText={(value) => handleInputChange('fullName', value)}
+              onChangeText={(v) => handleInputChange('fullName', v)}
             />
           </View>
 
@@ -115,11 +128,11 @@ const RegisterScreen: React.FC = () => {
             <Text style={styles.label}>Số điện thoại</Text>
             <TextInput
               style={styles.input}
-              placeholder="Nhập số điện thoại"
+              placeholder="Ví dụ: 0901234567"
               placeholderTextColor="#999"
               keyboardType="phone-pad"
               value={formData.phone}
-              onChangeText={(value) => handleInputChange('phone', value)}
+              onChangeText={(v) => handleInputChange('phone', v)}
             />
           </View>
 
@@ -132,7 +145,7 @@ const RegisterScreen: React.FC = () => {
                 placeholderTextColor="#999"
                 secureTextEntry={!showPassword}
                 value={formData.password}
-                onChangeText={(value) => handleInputChange('password', value)}
+                onChangeText={(v) => handleInputChange('password', v)}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <Ionicons
@@ -153,7 +166,7 @@ const RegisterScreen: React.FC = () => {
                 placeholderTextColor="#999"
                 secureTextEntry={!showConfirmPassword}
                 value={formData.confirmPassword}
-                onChangeText={(value) => handleInputChange('confirmPassword', value)}
+                onChangeText={(v) => handleInputChange('confirmPassword', v)}
               />
               <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                 <Ionicons
@@ -167,8 +180,16 @@ const RegisterScreen: React.FC = () => {
         </View>
 
         {/* Register Button */}
-        <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-          <Text style={styles.registerText}>Đăng ký</Text>
+        <TouchableOpacity
+          style={[styles.registerButton, loading && styles.registerButtonDisabled]}
+          onPress={handleRegister}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.registerText}>Đăng ký</Text>
+          )}
         </TouchableOpacity>
 
         {/* Login Link */}
@@ -185,6 +206,7 @@ const RegisterScreen: React.FC = () => {
 
 export default RegisterScreen;
 
+// === STYLES (cập nhật thêm) ===
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   scrollContainer: { padding: 20 },
@@ -194,37 +216,42 @@ const styles = StyleSheet.create({
   formContainer: { marginBottom: 20 },
   inputGroup: { marginBottom: 20 },
   label: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 8 },
-  input: { 
-    borderWidth: 1, 
-    borderColor: '#ddd', 
-    borderRadius: 12, 
-    padding: 14, 
-    fontSize: 16, 
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
     color: '#000',
-    backgroundColor: '#f9f9f9'
+    backgroundColor: '#f9f9f9',
   },
-  passwordContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    borderWidth: 1, 
-    borderColor: '#ddd', 
-    borderRadius: 12, 
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
     paddingHorizontal: 14,
-    backgroundColor: '#f9f9f9'
+    backgroundColor: '#f9f9f9',
   },
   passwordInput: { flex: 1, paddingVertical: 12, fontSize: 16, color: '#000' },
-  registerButton: { 
-    backgroundColor: '#007bff', 
-    paddingVertical: 16, 
-    borderRadius: 12, 
+  registerButton: {
+    backgroundColor: '#007bff',
+    paddingVertical: 16,
+    borderRadius: 12,
     marginTop: 10,
+    alignItems: 'center',
     shadowColor: '#007bff',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 8,
   },
-  registerText: { color: '#fff', textAlign: 'center', fontSize: 18, fontWeight: '600' },
+  registerButtonDisabled: {
+    backgroundColor: '#999',
+    elevation: 0,
+  },
+  registerText: { color: '#fff', fontSize: 18, fontWeight: '600' },
   loginContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 30 },
   loginText: { color: '#888', fontSize: 15 },
   loginLink: { color: '#007bff', fontWeight: '600', fontSize: 15 },
