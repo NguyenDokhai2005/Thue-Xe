@@ -62,6 +62,7 @@ public class SecurityConfig {
                 // Public endpoints
                 .requestMatchers("/test", "/test-post", "/api/auth/register", "/api/auth/login", "/api/auth/check-username").permitAll()
                 // Admin setup endpoints (development only)
+                    .requestMatchers("/api/vehicles", "/api/vehicles/**").permitAll()
                 .requestMatchers("/api/admin-setup/**").permitAll()
                 // Admin only endpoints
                 .requestMatchers("/api/auth/admin").hasRole("ADMIN")
