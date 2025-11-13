@@ -1,76 +1,35 @@
 // App.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Import các màn hình chính
-import HomePage from './src/screens/HomePage';
-import LoginScreen from './src/screens/loginScreen';
+// Import screens
+import HomeScreen from './src/screens/HomeScreen';
+import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
-import VehicleListScreen from './src/screens/VehicleListScreen';
 import VehicleDetailScreen from './src/screens/VehicleDetailScreen';
 import BookingScreen from './src/screens/BookingScreen';
 import BookingHistoryScreen from './src/screens/BookingHistoryScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
-import SearchScreen from './src/screens/SearchScreen';
 
-// Import các màn hình admin
-import AdminVehicleManagementScreen from './src/screens/AdminVehicleManagementScreen';
-import AdminAddVehicleScreen from './src/screens/AdminAddVehicleScreen';
-import AdminBookingManagementScreen from './src/screens/AdminBookingManagementScreen';
-
-// Khởi tạo navigators
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-// Stack Navigator cho các màn hình chính
-function MainStackNavigator() {
+// === HOME STACK ===
+function HomeStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="LoginScreen" component={LoginScreen} />
-      <Stack.Screen name="RegisterScreen" component={RegisterScreen} />
-      <Stack.Screen name="VehicleList" component={VehicleListScreen} />
+      <Stack.Screen name="HomeScreen" component={HomeScreen} />
       <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} />
-      <Stack.Screen name="BookingScreen" component={BookingScreen} />
-      <Stack.Screen name="BookingHistory" component={BookingHistoryScreen} />
-      <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
-      <Stack.Screen name="SearchScreen" component={SearchScreen} />
-      
-      {/* Admin Screens */}
-      <Stack.Screen name="AdminVehicleManagement" component={AdminVehicleManagementScreen} />
-      <Stack.Screen name="AdminAddVehicle" component={AdminAddVehicleScreen} />
-      <Stack.Screen name="AdminBookingManagement" component={AdminBookingManagementScreen} />
+      <Stack.Screen name="Booking" component={BookingScreen} />
     </Stack.Navigator>
   );
 }
 
-// Stack Navigator cho Search tab
-function SearchStackNavigator() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="SearchScreen" component={SearchScreen} />
-      <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} />
-      <Stack.Screen name="BookingScreen" component={BookingScreen} />
-      <Stack.Screen name="AdminAddVehicle" component={AdminAddVehicleScreen} />
-    </Stack.Navigator>
-  );
-}
-
-// Stack Navigator cho Orders tab
-function OrdersStackNavigator() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="BookingHistory" component={BookingHistoryScreen} />
-      <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} />
-      <Stack.Screen name="BookingScreen" component={BookingScreen} />
-    </Stack.Navigator>
-  );
-}
-
-// Stack Navigator cho Profile tab
+// === PROFILE STACK (CHỨA LOGIN + REGISTER) ===
 function ProfileStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -81,38 +40,77 @@ function ProfileStackNavigator() {
   );
 }
 
-export default function App() {
+// === ORDERS STACK ===
+function OrdersStackNavigator() {
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        initialRouteName="Home"
-        screenOptions={({ route }) => ({
-          headerShown: false,
-          tabBarActiveTintColor: '#0d62ff',
-          tabBarInactiveTintColor: '#8aa4d6',
-          tabBarStyle: { height: 60 },
-          tabBarLabelStyle: { marginBottom: 6 },
-          tabBarIcon: ({ color, size }) => {
-            const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
-              Home: 'home',
-              Search: 'search',
-              Orders: 'bag',
-              Profile: 'person',
-            };
-            const name = iconMap[route.name] ?? 'ellipse';
-            return <Ionicons name={name} size={size} color={color} />;
-          },
-        })}
-      >
-        <Tab.Screen name="Home" component={HomePage} />
-        <Tab.Screen name="Search" component={SearchStackNavigator} />
-        <Tab.Screen name="Orders" component={OrdersStackNavigator} />
-        <Tab.Screen name="Profile" component={ProfileStackNavigator} />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="BookingHistory" component={BookingHistoryScreen} />
+      <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} />
+      <Stack.Screen name="Booking" component={BookingScreen} />
+    </Stack.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
-  // Có thể xóa styles này
-});
+// === MAIN TABS ===
+function MainTabNavigator() {
+  return (
+    <Tab.Navigator
+      initialRouteName="Home"
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: '#0d62ff',
+        tabBarInactiveTintColor: '#8aa4d6',
+        tabBarStyle: { height: 60, paddingBottom: 8, paddingTop: 8 },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+        tabBarIcon: ({ color, size }) => {
+          const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
+            Home: 'home',
+            Orders: 'bag',
+            Profile: 'person',
+          };
+          const name = iconMap[route.name] ?? 'ellipse';
+          return <Ionicons name={name} size={size} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen name="Home" component={HomeStackNavigator} />
+      <Tab.Screen name="Orders" component={OrdersStackNavigator} />
+      <Tab.Screen name="Profile" component={ProfileStackNavigator} />
+    </Tab.Navigator>
+  );
+}
+
+// === ROOT NAVIGATOR ===
+function RootNavigator({ isLoggedIn }: { isLoggedIn: boolean }) {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+    </Stack.Navigator>
+  );
+}
+
+export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState<null | boolean>(null);
+
+  useEffect(() => {
+    const checkLogin = async () => {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        setIsLoggedIn(!!token);
+      } catch (error) {
+        setIsLoggedIn(false);
+      }
+    };
+    checkLogin();
+  }, []);
+
+  if (isLoggedIn === null) {
+    return null;
+  }
+
+  return (
+    <NavigationContainer>
+      <RootNavigator isLoggedIn={isLoggedIn} />
+    </NavigationContainer>
+  );
+}

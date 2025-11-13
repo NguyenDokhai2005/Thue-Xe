@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+// src/screens/VehicleDetailScreen.tsx
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Image, Alert, Dimensions
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Image, Dimensions, ActivityIndicator, Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
-
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 interface Vehicle {
   id: number;
   title: string;
@@ -12,8 +15,8 @@ interface Vehicle {
   licensePlate: string;
   dailyPrice: number;
   currency: string;
-  description: string;
-  status: string;
+  description?: string;
+  status?: string;
 }
 
 const { width } = Dimensions.get('window');
@@ -22,22 +25,38 @@ const VehicleDetailScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { vehicleId } = route.params;
-  
+
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      checkLoginStatus();
+    }, [])
+  );
 
   useEffect(() => {
     fetchVehicleDetails();
   }, [vehicleId]);
 
+  const checkLoginStatus = async () => {
+    const token = await AsyncStorage.getItem('userToken');
+    setIsLoggedIn(!!token);
+  };
+
   const fetchVehicleDetails = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/vehicles/${vehicleId}`);
+      const baseUrl = __DEV__
+        ? (Platform.OS === 'android' ? 'http://10.0.2.2:8080' : 'http://localhost:8080')
+        : 'https://your-api.com';
+
+      const response = await fetch(`${baseUrl}/api/vehicles/${vehicleId}`);
       if (response.ok) {
         const data = await response.json();
         setVehicle(data);
       } else {
-        Alert.alert('Lỗi', 'Không thể tải thông tin xe');
+        Alert.alert('Lỗi', 'Không tìm thấy xe');
         navigation.goBack();
       }
     } catch (error) {
@@ -48,17 +67,30 @@ const VehicleDetailScreen: React.FC = () => {
     }
   };
 
-  const getVehicleTypeIcon = (type: string) => {
-    switch (type) {
-      case 'SEDAN': return 'car-outline';
-      case 'SUV': return 'car-sport-outline';
-      case 'HATCHBACK': return 'car-outline';
-      case 'CONVERTIBLE': return 'car-sport-outline';
-      default: return 'car-outline';
-    }
+  const handleBookNow = () => {
+    if (!isLoggedIn) {
+  // CHUYỂN SANG TAB PROFILE + MỞ LOGIN + NHỚ TRẢ VỀ
+  navigation.dispatch(
+    CommonActions.navigate({
+      name: 'MainTabs',
+      params: {
+        screen: 'Profile',
+        params: {
+          screen: 'LoginScreen',
+          params: {
+            redirectTo: 'VehicleDetail',
+            redirectParams: { vehicleId }
+          }
+        }
+      }
+    })
+  );
+} else {
+  navigation.navigate('Booking', { vehicle });
+}
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status?: string) => {
     switch (status) {
       case 'AVAILABLE': return '#28a745';
       case 'RENTED': return '#dc3545';
@@ -67,7 +99,7 @@ const VehicleDetailScreen: React.FC = () => {
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status?: string) => {
     switch (status) {
       case 'AVAILABLE': return 'Có sẵn';
       case 'RENTED': return 'Đã thuê';
@@ -76,128 +108,87 @@ const VehicleDetailScreen: React.FC = () => {
     }
   };
 
-  const handleBookNow = () => {
-    if (vehicle?.status === 'AVAILABLE') {
-      navigation.navigate('BookingScreen', { vehicle });
-    } else {
-      Alert.alert('Thông báo', 'Xe này hiện không khả dụng để thuê');
-    }
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text>Đang tải...</Text>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#007bff" />
+          <Text style={styles.loadingText}>Đang tải...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   if (!vehicle) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text>Không tìm thấy thông tin xe</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return null;
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Chi tiết xe</Text>
-        <TouchableOpacity>
-          <Ionicons name="heart-outline" size={24} color="#007bff" />
-        </TouchableOpacity>
+        <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Vehicle Image */}
+      <ScrollView style={styles.scrollView}>
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: `https://placehold.co/${width}x200/007bff/ffffff?text=${vehicle.title}` }}
+            source={{ uri: `https://placehold.co/600x400/f0f0f0/333?text=${encodeURIComponent(vehicle.title)}` }}
             style={styles.vehicleImage}
           />
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(vehicle.status) }]}>
-            <Text style={styles.statusText}>{getStatusText(vehicle.status)}</Text>
-          </View>
+          {vehicle.status && (
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(vehicle.status) }]}>
+              <Text style={styles.statusText}>{getStatusText(vehicle.status)}</Text>
+            </View>
+          )}
         </View>
 
-        {/* Vehicle Info */}
         <View style={styles.infoContainer}>
           <Text style={styles.vehicleTitle}>{vehicle.title}</Text>
-          
+
           <View style={styles.detailRow}>
-            <Ionicons name={getVehicleTypeIcon(vehicle.vehicleType)} size={20} color="#666" />
+            <Ionicons name="car-outline" size={20} color="#666" />
             <Text style={styles.detailText}>{vehicle.vehicleType}</Text>
           </View>
 
           <View style={styles.detailRow}>
             <Ionicons name="card-outline" size={20} color="#666" />
-            <Text style={styles.detailText}>{vehicle.licensePlate}</Text>
+            <Text style={styles.detailText}>Biển số: {vehicle.licensePlate}</Text>
           </View>
 
           <View style={styles.priceSection}>
-            <Text style={styles.priceLabel}>Giá thuê</Text>
+            <Text style={styles.priceLabel}>Giá thuê/ngày</Text>
             <Text style={styles.price}>
-              {vehicle.dailyPrice.toLocaleString('vi-VN')} {vehicle.currency}/ngày
+              {vehicle.dailyPrice.toLocaleString('vi-VN')} {vehicle.currency}
             </Text>
           </View>
 
-          <View style={styles.descriptionSection}>
-            <Text style={styles.sectionTitle}>Mô tả</Text>
-            <Text style={styles.description}>{vehicle.description}</Text>
-          </View>
-
-          {/* Features */}
-          <View style={styles.featuresSection}>
-            <Text style={styles.sectionTitle}>Tính năng</Text>
-            <View style={styles.featuresGrid}>
-              <View style={styles.featureItem}>
-                <Ionicons name="snow-outline" size={24} color="#007bff" />
-                <Text style={styles.featureText}>Điều hòa</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Ionicons name="wifi-outline" size={24} color="#007bff" />
-                <Text style={styles.featureText}>Wifi</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Ionicons name="musical-notes-outline" size={24} color="#007bff" />
-                <Text style={styles.featureText}>Âm thanh</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Ionicons name="shield-checkmark-outline" size={24} color="#007bff" />
-                <Text style={styles.featureText}>Bảo hiểm</Text>
-              </View>
+          {vehicle.description && (
+            <View style={styles.descriptionSection}>
+              <Text style={styles.sectionTitle}>Mô tả</Text>
+              <Text style={styles.description}>{vehicle.description}</Text>
             </View>
-          </View>
+          )}
         </View>
       </ScrollView>
 
-      {/* Bottom Action */}
       <View style={styles.bottomContainer}>
         <View style={styles.priceInfo}>
-          <Text style={styles.totalPriceLabel}>Tổng cộng</Text>
+          <Text style={styles.totalPriceLabel}>Giá thuê/ngày</Text>
           <Text style={styles.totalPrice}>
-            {vehicle.dailyPrice.toLocaleString('vi-VN')} {vehicle.currency}/ngày
+            {vehicle.dailyPrice.toLocaleString('vi-VN')} {vehicle.currency}
           </Text>
         </View>
         <TouchableOpacity
-          style={[
-            styles.bookButton,
-            { backgroundColor: vehicle.status === 'AVAILABLE' ? '#007bff' : '#ccc' }
-          ]}
+          style={[styles.bookButton, { backgroundColor: vehicle.status === 'AVAILABLE' ? '#007bff' : '#ccc' }]}
           onPress={handleBookNow}
           disabled={vehicle.status !== 'AVAILABLE'}
         >
           <Text style={styles.bookButtonText}>
-            {vehicle.status === 'AVAILABLE' ? 'Đặt ngay' : 'Không khả dụng'}
+            {vehicle.status === 'AVAILABLE' ? 'Đặt ngay' : 'Không thể đặt'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -207,16 +198,18 @@ const VehicleDetailScreen: React.FC = () => {
 
 export default VehicleDetailScreen;
 
+// === STYLES (giữ nguyên + bổ sung) ===
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: '#f8f9fa' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, fontSize: 16, color: '#666' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
@@ -252,22 +245,6 @@ const styles = StyleSheet.create({
   descriptionSection: { marginBottom: 24 },
   sectionTitle: { fontSize: 18, fontWeight: '600', color: '#333', marginBottom: 12 },
   description: { fontSize: 16, color: '#666', lineHeight: 24 },
-  featuresSection: { marginBottom: 100 },
-  featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  featureItem: {
-    width: '48%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  featureText: { fontSize: 14, color: '#333', marginLeft: 8 },
   bottomContainer: {
     flexDirection: 'row',
     alignItems: 'center',
