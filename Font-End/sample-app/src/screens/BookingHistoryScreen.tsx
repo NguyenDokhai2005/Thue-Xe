@@ -1,24 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, RefreshControl, Alert
+  View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView,
+  RefreshControl, Alert, ActivityIndicator, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// ĐÚNG 100% VỚI DỮ LIỆU API CỦA BẠN
 interface Booking {
   id: number;
-  vehicle: {
-    id: number;
-    title: string;
-    licensePlate: string;
-    dailyPrice: number;
-    currency: string;
-  };
+  vehicleId: number;
+  vehicleTitle: string;
+  totalAmount: number;
+  currency: string;
+  status: string;
   startAt: string;
   endAt: string;
-  status: string;
-  notes?: string;
-  totalPrice: number;
+  notes: string | null;
+  dailyPriceSnapshot: number;
 }
 
 const BookingHistoryScreen: React.FC = () => {
@@ -27,222 +27,175 @@ const BookingHistoryScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchBookings();
-  }, []);
+  const API_BASE = Platform.OS === 'android' ? 'http://10.0.2.2:8080' : 'http://localhost:8080';
 
   const fetchBookings = async () => {
     try {
-      // Get token from storage (you'll need to implement this)
-      const token = await getStoredToken();
-      
+      const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        Alert.alert('Lỗi', 'Vui lòng đăng nhập để xem lịch sử đặt xe');
+        Alert.alert('Chưa đăng nhập', 'Vui lòng đăng nhập để xem lịch sử');
         navigation.navigate('LoginScreen');
         return;
       }
 
-      const response = await fetch('http://localhost:8080/api/bookings/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      const response = await fetch(`${API_BASE}/api/bookings/me`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data: Booking[] = await response.json();
+        console.log('DỮ LIỆU BOOKING:', JSON.stringify(data, null, 2));
         setBookings(data);
+      } else if (response.status === 401) {
+        Alert.alert('Phiên hết hạn', 'Vui lòng đăng nhập lại');
+        await AsyncStorage.removeItem('userToken');
+        navigation.navigate('LoginScreen');
       } else {
-        Alert.alert('Lỗi', 'Không thể tải lịch sử đặt xe');
+        Alert.alert('Lỗi', 'Không tải được danh sách đặt xe');
       }
-    } catch (error) {
-      Alert.alert('Lỗi', 'Không thể kết nối đến server');
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Lỗi mạng', 'Không kết nối được server');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
+  useEffect(() => { fetchBookings(); }, []);
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchBookings();
   };
 
-  // Mock function - you need to implement actual token storage
-  const getStoredToken = async () => {
-    return 'mock_token';
+  const handleCancelBooking = async (id: number) => {
+    Alert.alert('Xác nhận hủy', 'Bạn chắc chắn muốn hủy đơn này?', [
+      { text: 'Không', style: 'cancel' },
+      {
+        text: 'Có, hủy',
+        style: 'destructive',
+        onPress: async () => {
+          const token = await AsyncStorage.getItem('userToken');
+          const res = await fetch(`${API_BASE}/api/bookings/${id}/cancel`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            Alert.alert('Thành công', 'Đã hủy đơn đặt xe');
+            fetchBookings();
+          } else Alert.alert('Lỗi', 'Không thể hủy');
+        }
+      }
+    ]);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusColor = (s: string) => {
+    switch (s) {
       case 'PENDING': return '#ffc107';
       case 'ACTIVE': return '#28a745';
       case 'COMPLETED': return '#6c757d';
       case 'CANCELLED': return '#dc3545';
-      default: return '#6c757d';
+      default: return '#999';
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
+  const getStatusText = (s: string) => {
+    switch (s) {
       case 'PENDING': return 'Chờ xác nhận';
       case 'ACTIVE': return 'Đang thuê';
       case 'COMPLETED': return 'Hoàn thành';
       case 'CANCELLED': return 'Đã hủy';
-      default: return 'Không xác định';
+      default: return s;
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'PENDING': return 'time-outline';
-      case 'ACTIVE': return 'checkmark-circle-outline';
-      case 'COMPLETED': return 'checkmark-done-outline';
-      case 'CANCELLED': return 'close-circle-outline';
-      default: return 'help-circle-outline';
-    }
+  const formatDate = (d: string) => new Date(d).toLocaleString('vi-VN', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+
+  const calculateDays = (start: string, end: string) => {
+    const diff = new Date(end).getTime() - new Date(start).getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const calculateDays = (startAt: string, endAt: string) => {
-    const start = new Date(startAt);
-    const end = new Date(endAt);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays || 1;
-  };
-
-  const handleCancelBooking = async (bookingId: number) => {
-    Alert.alert(
-      'Xác nhận hủy',
-      'Bạn có chắc chắn muốn hủy đặt xe này?',
-      [
-        { text: 'Không', style: 'cancel' },
-        {
-          text: 'Có',
-          onPress: async () => {
-            try {
-              const token = await getStoredToken();
-              const response = await fetch(`http://localhost:8080/api/bookings/${bookingId}/cancel`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                },
-              });
-
-              if (response.ok) {
-                Alert.alert('Thành công', 'Đã hủy đặt xe');
-                fetchBookings(); // Refresh the list
-              } else {
-                Alert.alert('Lỗi', 'Không thể hủy đặt xe');
-              }
-            } catch (error) {
-              Alert.alert('Lỗi', 'Không thể kết nối đến server');
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const renderBookingItem = ({ item }: { item: Booking }) => (
-    <View style={styles.bookingCard}>
-      <View style={styles.bookingHeader}>
-        <View style={styles.vehicleInfo}>
-          <Text style={styles.vehicleTitle}>{item.vehicle.title}</Text>
-          <Text style={styles.licensePlate}>{item.vehicle.licensePlate}</Text>
+  const renderItem = ({ item }: { item: Booking }) => (
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>{item.vehicleTitle}</Text>
+          <Text style={styles.plate}>ID xe: {item.vehicleId}</Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-          <Ionicons name={getStatusIcon(item.status)} size={16} color="#fff" />
-          <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
+        <View style={[styles.badge, { backgroundColor: getStatusColor(item.status) }]}>
+          <Text style={styles.badgeText}>{getStatusText(item.status)}</Text>
         </View>
       </View>
 
-      <View style={styles.bookingDetails}>
-        <View style={styles.detailRow}>
+      <View style={styles.details}>
+        <View style={styles.row}>
           <Ionicons name="calendar-outline" size={16} color="#666" />
-          <Text style={styles.detailText}>
-            {formatDate(item.startAt)} - {formatDate(item.endAt)}
-          </Text>
+          <Text style={styles.text}>{formatDate(item.startAt)} → {formatDate(item.endAt)}</Text>
         </View>
-        
-        <View style={styles.detailRow}>
+        <View style={styles.row}>
           <Ionicons name="time-outline" size={16} color="#666" />
-          <Text style={styles.detailText}>
-            {calculateDays(item.startAt, item.endAt)} ngày
-          </Text>
+          <Text style={styles.text}>{calculateDays(item.startAt, item.endAt)} ngày</Text>
         </View>
-
         {item.notes && (
-          <View style={styles.detailRow}>
+          <View style={styles.row}>
             <Ionicons name="document-text-outline" size={16} color="#666" />
-            <Text style={styles.detailText}>{item.notes}</Text>
+            <Text style={styles.text}>{item.notes}</Text>
           </View>
         )}
+        <View style={styles.row}>
+          <Ionicons name="cash-outline" size={16} color="#666" />
+          <Text style={styles.price}>
+            {item.totalAmount.toLocaleString('vi-VN')} {item.currency}
+          </Text>
+        </View>
       </View>
 
-      <View style={styles.bookingFooter}>
-        <Text style={styles.totalPrice}>
-          {item.totalPrice.toLocaleString('vi-VN')} {item.vehicle.currency}
-        </Text>
-        
-        {item.status === 'PENDING' && (
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => handleCancelBooking(item.id)}
-          >
-            <Text style={styles.cancelButtonText}>Hủy</Text>
+      {item.status === 'PENDING' && (
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.cancelBtn} onPress={() => handleCancelBooking(item.id)}>
+            <Text style={styles.cancelText}>Hủy đặt xe</Text>
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      )}
     </View>
   );
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <Ionicons name="calendar-outline" size={64} color="#ccc" />
-      <Text style={styles.emptyText}>Chưa có đặt xe nào</Text>
-      <Text style={styles.emptySubtext}>Hãy đặt xe đầu tiên của bạn</Text>
-      <TouchableOpacity
-        style={styles.exploreButton}
-        onPress={() => navigation.navigate('VehicleList')}
-      >
-        <Text style={styles.exploreButtonText}>Khám phá xe</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  if (loading) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' }}>
+        <ActivityIndicator size="large" color="#007bff" />
+        <Text style={{ marginTop: 10 }}>Đang tải...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+      <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Lịch sử đặt xe</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('VehicleList')}>
-          <Ionicons name="add" size={24} color="#007bff" />
-        </TouchableOpacity>
+        <Text style={styles.topTitle}>Lịch sử đặt xe</Text>
+        <View style={{ width: 24 }} />
       </View>
 
       <FlatList
         data={bookings}
-        renderItem={renderBookingItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        renderItem={renderItem}
+        keyExtractor={item => item.id.toString()}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        contentContainerStyle={bookings.length === 0 ? { flex: 1, justifyContent: 'center', alignItems: 'center' } : { padding: 16 }}
+        ListEmptyComponent={
+          <View style={{ alignItems: 'center' }}>
+            <Ionicons name="car-outline" size={80} color="#ccc" />
+            <Text style={{ marginTop: 16, fontSize: 16, color: '#666' }}>Chưa có đơn nào</Text>
+          </View>
         }
-        ListEmptyComponent={renderEmptyState}
-        showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
   );
@@ -251,83 +204,50 @@ const BookingHistoryScreen: React.FC = () => {
 export default BookingHistoryScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: {
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    padding: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderColor: '#eee',
   },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#333' },
-  listContainer: { padding: 16 },
-  bookingCard: {
+  topTitle: { fontSize: 18, fontWeight: '600' },
+  card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 12,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 6,
   },
-  bookingHeader: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 12,
   },
-  vehicleInfo: { flex: 1 },
-  vehicleTitle: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 4 },
-  licensePlate: { fontSize: 14, color: '#666' },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: { color: '#fff', fontSize: 12, fontWeight: '600', marginLeft: 4 },
-  bookingDetails: { marginBottom: 12 },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  detailText: { fontSize: 14, color: '#666', marginLeft: 8 },
-  bookingFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  totalPrice: { fontSize: 16, fontWeight: '700', color: '#007bff' },
-  cancelButton: {
-    backgroundColor: '#dc3545',
-    paddingHorizontal: 16,
+  title: { fontSize: 17, fontWeight: '700', color: '#333' },
+  plate: { fontSize: 14, color: '#666', marginTop: 4 },
+  badge: {
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 20,
   },
-  cancelButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: { fontSize: 18, fontWeight: '600', color: '#666', marginTop: 16 },
-  emptySubtext: { fontSize: 14, color: '#999', marginTop: 4, marginBottom: 24 },
-  exploreButton: {
-    backgroundColor: '#007bff',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+  badgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  details: { gap: 10 },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  text: { marginLeft: 10, fontSize: 15, color: '#444', flex: 1 },
+  price: { marginLeft: 10, fontSize: 16, fontWeight: '700', color: '#007bff' },
+  footer: { marginTop: 12, alignItems: 'flex-end' },
+  cancelBtn: {
+    backgroundColor: '#dc3545',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     borderRadius: 8,
   },
-  exploreButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  cancelText: { color: '#fff', fontWeight: '600', fontSize: 14 },
 });

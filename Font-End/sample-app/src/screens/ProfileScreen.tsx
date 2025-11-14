@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  Image, Alert, ActivityIndicator, ScrollView
+  Alert, ActivityIndicator, ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -10,11 +10,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CommonActions } from '@react-navigation/native';
 
 interface User {
-  id: number;
+  id?: number;
   username: string;
-  fullName: string;
-  phone: string;
-  role: string;
+  fullName?: string;
+  phone?: string;
+  email?: string;
+  role?: string;                    // có thể là "ADMIN", "CUSTOMER", "USER"...
+  roles?: string[];                 // có thể là mảng ["ROLE_ADMIN"]
+  authorities?: { authority: string }[]; // Spring Security trả kiểu này
 }
 
 const ProfileScreen: React.FC = () => {
@@ -31,7 +34,8 @@ const ProfileScreen: React.FC = () => {
       const token = await AsyncStorage.getItem('userToken');
       const userInfo = await AsyncStorage.getItem('userInfo');
       if (token && userInfo) {
-        setUser(JSON.parse(userInfo));
+        const parsed = JSON.parse(userInfo);
+        setUser(parsed);
       }
     } catch (error) {
       console.error('Lỗi tải thông tin người dùng:', error);
@@ -68,6 +72,22 @@ const ProfileScreen: React.FC = () => {
     navigation.navigate('LoginScreen');
   };
 
+  // Hàm xác định người dùng có phải ADMIN không
+  const isAdmin = () => {
+    if (!user) return false;
+    const roles = 
+      user.roles ||
+      user.authorities?.map((a: any) => a.authority) ||
+      (user.role ? [user.role] : []) ||
+      [];
+
+    return roles.some((r: string) => 
+      r === 'ADMIN' || 
+      r === 'ROLE_ADMIN' || 
+      r.includes('ADMIN')
+    );
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -97,8 +117,17 @@ const ProfileScreen: React.FC = () => {
 
           {user ? (
             <>
-              <Text style={styles.userName}>{user.fullName || user.username}</Text>
-              <Text style={styles.userRole}>{user.role === 'USER' ? 'Khách hàng' : 'Quản trị viên'}</Text>
+              <Text style={styles.userName}>
+                {user.fullName || user.username}
+              </Text>
+
+              {/* FIX HOÀN TOÀN – HIỂN THỊ ROLE ĐÚNG 100% */}
+              <Text style={[
+                styles.userRole,
+                { color: isAdmin() ? '#d4a017' : '#28a745' }
+              ]}>
+                {isAdmin() ? 'Quản trị viên' : 'Khách hàng'}
+              </Text>
 
               <View style={styles.infoRow}>
                 <Ionicons name="person-outline" size={20} color="#666" />
@@ -112,13 +141,17 @@ const ProfileScreen: React.FC = () => {
 
               <View style={styles.infoRow}>
                 <Ionicons name="mail-outline" size={20} color="#666" />
-                <Text style={styles.infoText}>{user.username}@example.com</Text>
+                <Text style={styles.infoText}>
+                  {user.email || `${user.username}@example.com`}
+                </Text>
               </View>
             </>
           ) : (
             <>
               <Text style={styles.guestTitle}>Chào mừng bạn!</Text>
-              <Text style={styles.guestSubtitle}>Đăng nhập để sử dụng đầy đủ tính năng</Text>
+              <Text style={styles.guestSubtitle}>
+                Đăng nhập để sử dụng đầy đủ tính năng
+              </Text>
             </>
           )}
         </View>
@@ -127,7 +160,10 @@ const ProfileScreen: React.FC = () => {
         <View style={styles.actionSection}>
           {user ? (
             <>
-              <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('BookingHistory')}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('BookingHistory')}
+              >
                 <Ionicons name="receipt-outline" size={24} color="#007bff" />
                 <Text style={styles.actionText}>Lịch sử đặt xe</Text>
                 <Ionicons name="chevron-forward" size={20} color="#ccc" />
@@ -135,7 +171,9 @@ const ProfileScreen: React.FC = () => {
 
               <TouchableOpacity style={styles.actionButton} onPress={handleLogout}>
                 <Ionicons name="log-out-outline" size={24} color="#dc3545" />
-                <Text style={[styles.actionText, { color: '#dc3545' }]}>Đăng xuất</Text>
+                <Text style={[styles.actionText, { color: '#dc3545' }]}>
+                  Đăng xuất
+                </Text>
                 <Ionicons name="chevron-forward" size={20} color="#ccc" />
               </TouchableOpacity>
             </>
@@ -204,7 +242,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   userName: { fontSize: 22, fontWeight: '700', color: '#333', marginBottom: 4 },
-  userRole: { fontSize: 14, color: '#007bff', marginBottom: 16, fontWeight: '600' },
+  userRole: { 
+    fontSize: 14, 
+    fontWeight: '600', 
+    marginBottom: 16 
+  },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',

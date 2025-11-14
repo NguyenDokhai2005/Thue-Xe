@@ -13,9 +13,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { CommonActions } from '@react-navigation/native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Vehicle {
@@ -34,89 +33,110 @@ const BookingScreen: React.FC = () => {
   const route = useRoute<any>();
   const { vehicle } = route.params as { vehicle: Vehicle };
 
-  const [startDate, setStartDate] = useState<Date>(new Date());
-  const [endDate, setEndDate] = useState<Date>(new Date());
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
+  // ----- STATE -----
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date(Date.now() + 60 * 60 * 1000)); 
+
+  const [showStartTime, setShowStartTime] = useState(false);
+  const [showStartDate, setShowStartDate] = useState(false);
+  const [showEndDate, setShowEndDate] = useState(false);
+  const [showEndTime, setShowEndTime] = useState(false);
+
+  const [tempDate, setTempDate] = useState<Date | null>(null);
+
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Khởi tạo thời gian đẹp hơn
+  // ----- SET DEFAULT END DATE +1 -----
   useEffect(() => {
-    const now = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(12, 0, 0, 0);
-
-    // Start: làm tròn lên +2 tiếng từ giờ hiện tại
-    const start = new Date(now);
-    start.setHours(start.getHours() + 2);
-    start.setMinutes(0, 0, 0);
-
-    setStartDate(start);
-    setEndDate(tomorrow);
+    const t = new Date();
+    t.setDate(t.getDate() + 1);
+    setEndDate(t);
   }, []);
 
-  const calculateDays = (): number => {
+  // ----- TÍNH NGÀY -----
+  const calculateDays = () => {
     const diff = endDate.getTime() - startDate.getTime();
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    return Math.max(1, days);
+    return days > 0 ? days : 1;
   };
 
-  const calculateTotalPrice = (): number => calculateDays() * vehicle.dailyPrice;
+  const calculateTotalPrice = () => calculateDays() * vehicle.dailyPrice;
 
-  const formatISO = (date: Date): string => {
-    return date.toISOString().slice(0, 16) + ':00'; // 2025-11-15T14:00:00
+  // ----- FORMAT ISO CHUẨN API -----
+  const toIsoString = (d: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return (
+      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+      `T${pad(d.getHours())}:${pad(d.getMinutes())}:00`
+    );
   };
 
-  const validateBooking = (): boolean => {
-    if (startDate >= endDate) {
-      Alert.alert('Lỗi', 'Thời gian kết thúc phải sau thời gian bắt đầu');
+  // ----- VALIDATE -----
+  const validateBooking = () => {
+    const now = new Date();
+    if (startDate < now) {
+      Alert.alert('Lỗi', 'Ngày bắt đầu không thể là quá khứ.');
       return false;
     }
-    if (startDate < new Date()) {
-      Alert.alert('Lỗi', 'Thời gian bắt đầu không được trong quá khứ');
+    if (endDate <= startDate) {
+      Alert.alert('Lỗi', 'Ngày kết thúc phải sau ngày bắt đầu.');
       return false;
     }
     return true;
   };
 
-  // XỬ LÝ DateTimePicker HOÀN HẢO CHO EXPO 51
-  const onDateChange = (
-    event: any,
+  // ----- HANDLE CHỌN NGÀY + GIỜ -----
+  const onSelectDateTime = (
+    event: DateTimePickerEvent,
     selectedDate?: Date,
     isStart: boolean = true
   ) => {
-    // Android: khi bấm Cancel → event.type === 'dismissed'
-    if (Platform.OS === 'android') {
-      if (event.type === 'dismissed') {
-        isStart ? setShowStartPicker(false) : setShowEndPicker(false);
-        return;
-      }
-      // Chỉ xử lý khi bấm "OK" (set)
-      if (!selectedDate) return;
+    if (event.type === 'dismissed') {
+      setShowStartDate(false);
+      setShowStartTime(false);
+      setShowEndDate(false);
+      setShowEndTime(false);
+      setTempDate(null);
+      return;
     }
 
-    // iOS hoặc Android đã chọn xong
-    if (selectedDate) {
+    // step 1 → chọn ngày
+    if (!tempDate) {
+      setTempDate(selectedDate!);
+
       if (isStart) {
-        setStartDate(selectedDate);
-        setShowStartPicker(false);
-
-        // Tự động đẩy endDate nếu bị nhỏ hơn
-        if (selectedDate >= endDate) {
-          const newEnd = new Date(selectedDate);
-          newEnd.setDate(newEnd.getDate() + 1);
-          newEnd.setHours(12, 0, 0, 0);
-          setEndDate(newEnd);
-        }
+        setShowStartDate(false);
+        setShowStartTime(true);
       } else {
-        setEndDate(selectedDate);
-        setShowEndPicker(false);
+        setShowEndDate(false);
+        setShowEndTime(true);
       }
+      return;
     }
+
+    // step 2 → chọn giờ
+    const final = new Date(tempDate);
+    final.setHours(selectedDate!.getHours());
+    final.setMinutes(selectedDate!.getMinutes());
+
+    if (isStart) {
+      setStartDate(final);
+      if (final >= endDate) {
+        const autoEnd = new Date(final);
+        autoEnd.setHours(autoEnd.getHours() + 1);
+        setEndDate(autoEnd);
+      }
+    } else {
+      setEndDate(final);
+    }
+
+    setTempDate(null);
+    setShowStartTime(false);
+    setShowEndTime(false);
   };
 
+  // ----- GỬI BOOKING -----
   const handleBooking = async () => {
     if (!validateBooking()) return;
 
@@ -124,23 +144,24 @@ const BookingScreen: React.FC = () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
       if (!token) {
-        Alert.alert('Lỗi', 'Vui lòng đăng nhập lại');
+        Alert.alert('Lỗi', 'Vui lòng đăng nhập lại.');
         navigation.navigate('LoginScreen');
         return;
       }
 
       const payload = {
         vehicleId: vehicle.id,
-        startAt: formatISO(startDate),
-        endAt: formatISO(endDate),
+        startAt: toIsoString(startDate),
+        endAt: toIsoString(endDate),
         notes: notes.trim() || null,
       };
 
-      const baseUrl = __DEV__
-        ? Platform.OS === 'android'
+      console.log('PAYLOAD GỬI API:', payload);
+
+      const baseUrl =
+        Platform.OS === 'android'
           ? 'http://10.0.2.2:8080'
-          : 'http://localhost:8080'
-        : 'https://your-api.com';
+          : 'http://localhost:8080';
 
       const response = await fetch(`${baseUrl}/api/bookings`, {
         method: 'POST',
@@ -151,150 +172,223 @@ const BookingScreen: React.FC = () => {
         body: JSON.stringify(payload),
       });
 
-      const result = await response.json();
+      let text = await response.text();
+      let result = text ? JSON.parse(text) : null;
+
+      console.log('RESPONSE API:', result);
 
       if (response.ok) {
         Alert.alert(
-          'Thành công!',
-          `Đặt xe thành công! Mã đặt chỗ: #${result.id || result.bookingId}`,
-          [{
-            text: 'OK',
-            onPress: () => navigation.dispatch(
-              CommonActions.reset({
-                index: 0,
-                routes: [{ name: 'MainTabs' }],
-              })
-            ),
-          }]
+          'Đặt xe thành công!',
+          result?.id
+            ? `Mã đặt xe: #${result.id}\nChờ quản trị viên xác nhận.`
+            : 'Đặt xe thành công.',
+          [
+            {
+              text: 'OK',
+              onPress: () =>
+                navigation.dispatch(
+                  CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'MainTabs' }],
+                  })
+                ),
+            },
+          ]
         );
       } else {
-        const msg = result.message || result.error || 'Đã có lỗi xảy ra';
-        Alert.alert('Đặt xe thất bại', msg);
+        Alert.alert('Lỗi', result?.message || 'Không thể đặt xe.');
       }
-    } catch (error: any) {
-      console.error('Booking error:', error);
-      Alert.alert('Lỗi kết nối', 'Không thể kết nối đến máy chủ. Vui lòng thử lại.');
+    } catch (err) {
+      console.log('LỖI:', err);
+      Alert.alert('Lỗi mạng', 'Không kết nối được server.');
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDisplayDate = (date: Date) => {
-    return date.toLocaleString('vi-VN', {
-      weekday: 'short',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  // =================================================
+  // UI STARTS HERE
+  // =================================================
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* Header */}
+      <ScrollView>
+        {/* HEADER */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={28} color="#000" />
+            <Ionicons name="arrow-back" size={24} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Đặt xe</Text>
-          <View style={{ width: 28 }} />
+          <View style={{ width: 24 }} />
         </View>
 
-        {/* Thông tin xe */}
-        <View style={styles.bookingCard}>
+        {/* THÔNG TIN XE */}
+        <View style={styles.card}>
           <Text style={styles.cardTitle}>Thông tin xe</Text>
-          <Text style={styles.vehicleName}>{vehicle.title}</Text>
-          <Text style={styles.vehicleType}>{vehicle.vehicleType}</Text>
-          <Text style={styles.licensePlate}>Biển số: {vehicle.licensePlate}</Text>
-          <Text style={styles.dailyPrice}>
+          <Text style={styles.carName}>{vehicle.title}</Text>
+          <Text style={styles.carSub}>{vehicle.vehicleType}</Text>
+          <Text style={styles.carSub}>Biển số: {vehicle.licensePlate}</Text>
+          <Text style={styles.carPrice}>
             {vehicle.dailyPrice.toLocaleString('vi-VN')} {vehicle.currency}/ngày
           </Text>
         </View>
 
-        {/* Thời gian thuê */}
-        <View style={styles.bookingCard}>
-          <Text style={styles.cardTitle}>Thời gian thuê</Text>
+        {/* PICK START DATETIME */}
+<View style={styles.card}>
+  <Text style={styles.cardTitle}>Thời gian bắt đầu</Text>
 
-          {/* Từ */}
-          <View style={styles.dateSection}>
-            <Text style={styles.label}>Từ</Text>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => setShowStartPicker(true)}
-            >
-              <Ionicons name="calendar-outline" size={20} color="#666" />
-              <Text style={styles.dateText}>{formatDisplayDate(startDate)}</Text>
-            </TouchableOpacity>
-          </View>
+  <TouchableOpacity
+    style={styles.pickButton}
+    onPress={() => {
+      setShowStartDate(true);
+      setShowStartTime(false);
+    }}
+  >
+    <Ionicons name="calendar-outline" size={20} color="#555" />
+    <Text style={styles.pickText}>
+      {startDate.toLocaleDateString('vi-VN')} {startDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+    </Text>
+  </TouchableOpacity>
 
-          {/* Đến */}
-          <View style={styles.dateSection}>
-            <Text style={styles.label}>Đến</Text>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => setShowEndPicker(true)}
-            >
-              <Ionicons name="calendar-outline" size={20} color="#666" />
-              <Text style={styles.dateText}>{formatDisplayDate(endDate)}</Text>
-            </TouchableOpacity>
-          </View>
+  {/* Chọn Ngày - Android */}
+  {showStartDate && (
+    <DateTimePicker
+      value={startDate}
+      mode="date"
+      display="calendar"
+      onChange={(event, selectedDate) => {
+        if (event.type === 'dismissed') {
+          // Bấm nút back hoặc Cancel
+          setShowStartDate(false);
+          return;
+        }
 
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Số ngày thuê</Text>
-            <Text style={styles.summaryValue}>{calculateDays()} ngày</Text>
-          </View>
-        </View>
+        if (event.type === 'set' && selectedDate) {
+          // Người dùng bấm OK
+          const tempDate = new Date(selectedDate);
+          // Giữ lại giờ/phút cũ trước khi mở picker giờ
+          tempDate.setHours(startDate.getHours());
+          tempDate.setMinutes(startDate.getMinutes());
+          
+          setStartDate(tempDate);
+          setShowStartDate(false);
+          setShowStartTime(true); // Mở chọn giờ ngay
+        }
+      }}
+    />
+  )}
 
-        {/* Picker (chỉ hiện khi cần) */}
-        {showStartPicker && (
-          <DateTimePicker
-            value={startDate}
-            mode="datetime"
-            minimumDate={new Date()}
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(e, d) => onDateChange(e, d, true)}
-          />
-        )}
+  {/* Chọn Giờ - Android */}
+  {showStartTime && (
+    <DateTimePicker
+      value={startDate}
+      mode="time"
+      display="default"
+      is24Hour={true}
+      onChange={(event, selectedDate) => {
+        setShowStartTime(false); // Luôn đóng picker giờ
 
-        {showEndPicker && (
-          <DateTimePicker
-            value={endDate}
-            mode="datetime"
-            minimumDate={new Date(startDate.getTime() + 60 * 60 * 1000)} // ít nhất 1 tiếng sau
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(e, d) => onDateChange(e, d, false)}
-          />
-        )}
+        if (event.type === 'set' && selectedDate) {
+          setStartDate(selectedDate); // Lưu giờ mới
+        }
+        // Nếu bấm Cancel thì giữ nguyên giờ cũ
+      }}
+    />
+  )}
+</View>
 
-        {/* Ghi chú */}
-        <View style={styles.bookingCard}>
-          <Text style={styles.cardTitle}>Ghi chú (không bắt buộc)</Text>
-          <TextInput
-            style={styles.notesInput}
-            placeholder="Ví dụ: Cần xe sạch, có ghế trẻ em..."
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            numberOfLines={4}
-          />
-        </View>
+{/* PICK END DATETIME */}
+<View style={styles.card}>
+  <Text style={styles.cardTitle}>Thời gian kết thúc</Text>
 
-        {/* Tổng tiền */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Giá thuê/ngày</Text>
-            <Text style={styles.summaryValue}>
+  <TouchableOpacity
+    style={styles.pickButton}
+    onPress={() => {
+      setShowEndDate(true);
+      setShowEndTime(false);
+    }}
+  >
+    <Ionicons name="calendar-outline" size={20} color="#555" />
+    <Text style={styles.pickText}>
+      {endDate.toLocaleDateString('vi-VN')} {endDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+    </Text>
+  </TouchableOpacity>
+
+  {/* Chọn Ngày - Android */}
+  {showEndDate && (
+    <DateTimePicker
+      value={endDate}
+      mode="date"
+      display="calendar"
+      onChange={(event, selectedDate) => {
+        if (event.type === 'dismissed') {
+          setShowEndDate(false);
+          return;
+        }
+
+        if (event.type === 'set' && selectedDate) {
+          const tempDate = new Date(selectedDate);
+          tempDate.setHours(endDate.getHours());
+          tempDate.setMinutes(endDate.getMinutes());
+          
+          setEndDate(tempDate);
+          setShowEndDate(false);
+          setShowEndTime(true); // Mở chọn giờ
+        }
+      }}
+    />
+  )}
+
+  {/* Chọn Giờ - Android */}
+  {showEndTime && (
+    <DateTimePicker
+      value={endDate}
+      mode="time"
+      display="default"
+      is24Hour={true}
+      onChange={(event, selectedDate) => {
+        setShowEndTime(false);
+
+        if (event.type === 'set' && selectedDate) {
+          setEndDate(selectedDate);
+        }
+      }}
+    />
+  )}
+</View>
+
+{/* GHI CHÚ - NOTES */}
+<View style={styles.card}>
+  <Text style={styles.cardTitle}>Ghi chú (nếu có)</Text>
+  <TextInput
+    style={styles.notesInput}
+    placeholder="Ví dụ: Giao xe tại sân bay Tân Sơn Nhất, cần hóa đơn VAT, xe màu trắng..."
+    placeholderTextColor="#999"
+    multiline={true}
+    numberOfLines={4}
+    textAlignVertical="top"
+    value={notes}
+    onChangeText={setNotes}
+    autoCapitalize="sentences"
+    autoCorrect={true}
+  />
+</View>
+        {/* TỔNG TIỀN */}
+        <View style={styles.card}>
+          <View style={styles.row}>
+            <Text>Giá thuê/ngày</Text>
+            <Text>
               {vehicle.dailyPrice.toLocaleString('vi-VN')} {vehicle.currency}
             </Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Số ngày</Text>
-            <Text style={styles.summaryValue}>× {calculateDays()}</Text>
+
+          <View style={styles.row}>
+            <Text>Số ngày thuê</Text>
+            <Text>{calculateDays()} ngày</Text>
           </View>
-          <View style={styles.divider} />
-          <View style={styles.summaryRow}>
+
+          <View style={styles.row2}>
             <Text style={styles.totalLabel}>Tổng cộng</Text>
             <Text style={styles.totalValue}>
               {calculateTotalPrice().toLocaleString('vi-VN')} {vehicle.currency}
@@ -303,19 +397,17 @@ const BookingScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Nút đặt xe cố định dưới cùng */}
-      <View style={styles.bottomContainer}>
+      {/* BUTTON */}
+      <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.bookButton, loading && styles.disabledButton]}
+          style={styles.bookButton}
           onPress={handleBooking}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.bookButtonText}>
-              Xác nhận đặt xe • {calculateTotalPrice().toLocaleString('vi-VN')} {vehicle.currency}
-            </Text>
+            <Text style={styles.bookText}>Xác nhận đặt xe</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -325,99 +417,81 @@ const BookingScreen: React.FC = () => {
 
 export default BookingScreen;
 
-// Styles giữ nguyên, chỉ thêm chút đẹp hơn
+// =================================================
+// STYLES
+// =================================================
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f7fa' },
-  scrollView: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#f8f9fa' },
+
   header: {
+    padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#222' },
-  bookingCard: {
+  headerTitle: { fontSize: 18, fontWeight: '600' },
+
+  card: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginHorizontal: 16,
-    marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    padding: 16,
+    borderRadius: 10,
+    margin: 12,
+    elevation: 2,
   },
-  summaryCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginHorizontal: 16,
-    marginVertical: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#222', marginBottom: 16 },
-  vehicleName: { fontSize: 18, fontWeight: 'bold', color: '#222', marginBottom: 6 },
-  vehicleType: { fontSize: 15, color: '#666', marginBottom: 4 },
-  licensePlate: { fontSize: 15, color: '#444', marginBottom: 8 },
-  dailyPrice: { fontSize: 17, fontWeight: 'bold', color: '#007bff' },
-  dateSection: { marginBottom: 20 },
-  label: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 10 },
-  dateButton: {
+  cardTitle: { fontSize: 16, fontWeight: '600', marginBottom: 10 },
+  carName: { fontSize: 16, fontWeight: '600' },
+  carSub: { fontSize: 14, color: '#555' },
+  carPrice: { marginTop: 10, color: '#007bff', fontWeight: '700' },
+
+  pickButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    backgroundColor: '#eee',
+    padding: 12,
+    borderRadius: 8,
   },
-  dateText: { fontSize: 16, color: '#333', marginLeft: 10, flex: 1 },
-  notesInput: {
-    backgroundColor: '#f8f9fa',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    fontSize: 16,
-    textAlignVertical: 'top',
-    minHeight: 100,
-  },
-  summaryRow: {
+  pickText: { marginLeft: 10, fontSize: 16 },
+
+  row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  summaryLabel: { fontSize: 16, color: '#666' },
-  summaryValue: { fontSize: 16, fontWeight: '600', color: '#222' },
-  divider: { height: 1, backgroundColor: '#eee', marginVertical: 12 },
-  totalLabel: { fontSize: 20, fontWeight: 'bold', color: '#222' },
-  totalValue: { fontSize: 22, fontWeight: 'bold', color: '#007bff' },
-  bottomContainer: {
+  row2: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  totalLabel: { fontSize: 18, fontWeight: '700' },
+  totalValue: { fontSize: 18, fontWeight: '700', color: '#007bff' },
+
+  footer: {
     padding: 16,
     backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
   },
   bookButton: {
     backgroundColor: '#007bff',
-    paddingVertical: 18,
-    borderRadius: 16,
+    padding: 16,
     alignItems: 'center',
-    shadowColor: '#007bff',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    borderRadius: 10,
   },
-  disabledButton: { opacity: 0.7 },
-  bookButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  bookText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  notesInput: {
+  backgroundColor: '#f9f9f9',
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 10,
+  paddingHorizontal: 14,
+  paddingTop: 14,
+  paddingBottom: 14,
+  fontSize: 15,
+  minHeight: 100,
+  maxHeight: 160,
+  marginTop: 8,
+},
 });
