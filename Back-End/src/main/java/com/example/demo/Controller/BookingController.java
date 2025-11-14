@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import java.util.HashMap;
+import java.util.Map;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,9 +25,14 @@ public class BookingController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('CUSTOMER')")
-    public ResponseEntity<BookingResponse> create(@Valid @RequestBody BookingCreateRequest request) {
+    public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody BookingCreateRequest request) {
         Booking created = bookingService.createBooking(request);
-        return ResponseEntity.ok(BookingResponse.fromEntity(created));
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("id", created.getId());
+        res.put("message", "Đặt xe thành công");
+
+        return ResponseEntity.status(201).body(res);
     }
 
     @GetMapping("/me")
