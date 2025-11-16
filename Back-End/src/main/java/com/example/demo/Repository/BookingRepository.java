@@ -19,6 +19,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                                @Param("endAt") LocalDateTime endAt);
 
     List<Booking> findByRenterIdOrderByCreatedAtDesc(Long renterId);
+    
+    List<Booking> findAllByOrderByCreatedAtDesc();
 }
 
 
