@@ -72,6 +72,10 @@ public class BookingService {
             throw new RuntimeException("User chưa đăng nhập!");
         }
         User current = userService.getCurrentUser();
+        // Admin có thể xem tất cả bookings
+        if (current.getRole() == User.Role.ADMIN) {
+            return bookingRepository.findAllByOrderByCreatedAtDesc();
+        }
         return bookingRepository.findByRenterIdOrderByCreatedAtDesc(current.getId());
     }
 
