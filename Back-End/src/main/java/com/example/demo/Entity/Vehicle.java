@@ -55,6 +55,9 @@ public class Vehicle {
     @Column(name = "created_at", insertable = false, updatable = false)
     private java.sql.Timestamp createdAt;
 
+    @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<VehiclePhoto> photos;
+
     public enum VehicleType {
         SEDAN, SUV, HATCHBACK, COUPE, CONVERTIBLE, WAGON, PICKUP, VAN, MOTORCYCLE
     }
@@ -127,6 +130,14 @@ public class Vehicle {
 
     public java.sql.Timestamp getCreatedAt() {
         return createdAt;
+    }
+
+    public java.util.List<VehiclePhoto> getPhotos() {
+        return photos;
+    }
+
+    public void setPhotos(java.util.List<VehiclePhoto> photos) {
+        this.photos = photos;
     }
 }
 

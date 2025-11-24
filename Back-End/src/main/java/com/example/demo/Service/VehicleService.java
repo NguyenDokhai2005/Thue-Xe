@@ -4,7 +4,6 @@ import com.example.demo.DTO.VehicleRequest;
 import com.example.demo.Entity.Vehicle;
 import com.example.demo.Repository.VehicleRepository;
 import com.example.demo.Repository.BookingRepository;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,28 +42,24 @@ public class VehicleService {
     }
 
     public Vehicle getVehicle(Long id) {
-        return vehicleRepository.findById(id)
+        return vehicleRepository.findByIdWithPhotos(id)
                 .orElseThrow(() -> new RuntimeException("Vehicle không tồn tại!"));
     }
 
     public List<Vehicle> listVehicles() {
-        return vehicleRepository.findAll();
+        return vehicleRepository.findAllWithPhotos();
     }
 
     public List<Vehicle> searchVehicles(Vehicle.VehicleType type, BigDecimal minPrice, BigDecimal maxPrice) {
-        Specification<Vehicle> spec = Specification.where(null);
-
-        if (type != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("vehicleType"), type));
-        }
-        if (minPrice != null) {
-            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("dailyPrice"), minPrice));
-        }
-        if (maxPrice != null) {
-            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("dailyPrice"), maxPrice));
-        }
-
-        return vehicleRepository.findAll(spec);
+        // Load tất cả vehicles với photos trước
+        List<Vehicle> allVehicles = vehicleRepository.findAllWithPhotosForSearch();
+        
+        // Filter theo criteria
+        return allVehicles.stream()
+                .filter(v -> type == null || v.getVehicleType() == type)
+                .filter(v -> minPrice == null || v.getDailyPrice().compareTo(minPrice) >= 0)
+                .filter(v -> maxPrice == null || v.getDailyPrice().compareTo(maxPrice) <= 0)
+                .toList();
     }
 
     public List<Vehicle> searchByPrice(BigDecimal minPrice, BigDecimal maxPrice) {
@@ -76,7 +71,7 @@ public class VehicleService {
     }
 
     public List<Vehicle> searchByDateAvailability(LocalDateTime startAt, LocalDateTime endAt) {
-        List<Vehicle> all = vehicleRepository.findAll();
+        List<Vehicle> all = vehicleRepository.findAllWithPhotos();
         return all.stream()
                 .filter(v -> bookingRepository.findOverlaps(v, startAt, endAt).isEmpty())
                 .toList();

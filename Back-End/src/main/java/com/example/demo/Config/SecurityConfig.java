@@ -59,6 +59,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // Static resources (images)
+                .requestMatchers("/storage/**").permitAll()
                 // Public endpoints
                 .requestMatchers("/test", "/test-post", "/api/auth/register", "/api/auth/login", "/api/auth/check-username").permitAll()
                 // Admin setup endpoints (development only)
